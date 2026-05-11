@@ -1,0 +1,19 @@
+import { Module } from '@nestjs/common'
+import { JwtModule } from '@nestjs/jwt'
+import { PassportModule } from '@nestjs/passport'
+import { AuthController } from './auth.controller'
+import { AuthService } from './auth.service'
+import { GoogleStrategy } from './strategies/google.strategy'
+import { JwtStrategy } from './strategies/jwt.strategy'
+import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy'
+
+@Module({
+  imports: [
+    PassportModule,
+    JwtModule.register({}), // la config real va en generateTokens con signAsync
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, GoogleStrategy, JwtStrategy, JwtRefreshStrategy],
+  exports: [AuthService],
+})
+export class AuthModule {}

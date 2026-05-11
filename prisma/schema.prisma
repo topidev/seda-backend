@@ -1,0 +1,356 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────
+
+model Teacher {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  lastName     String
+  photo        String?
+  role         Role     @default(TEACHER)
+  active       Boolean  @default(true)
+  refreshToken String?  // ← agrega esta línea
+  createdAt    DateTime @default(now())
+
+  schools          SchoolTeacher[]
+  subjects         Subject[]
+  students         Student[]
+  sharedLinks      SharedLink[]
+
+  @@map("teachers")
+}
+
+enum Role {
+  TEACHER
+  SUPER_ADMIN
+}
+
+// ─────────────────────────────────────────
+// SCHOOLS
+// ─────────────────────────────────────────
+
+model School {
+  id     String  @id @default(cuid())
+  name   String
+  shift  Shift
+  level  Level   @default(SECONDARY)
+  active Boolean @default(true)
+
+  teachers        SchoolTeacher[]
+  groups          Group[]
+  academicTerms   AcademicTerm[]
+
+  @@map("schools")
+}
+
+model SchoolTeacher {
+  id        String  @id @default(cuid())
+  teacherId String
+  schoolId  String
+  active    Boolean @default(true)
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+  school  School  @relation(fields: [schoolId], references: [id])
+
+  @@unique([teacherId, schoolId])
+  @@map("school_teachers")
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+enum Level {
+  SECONDARY
+}
+
+// ─────────────────────────────────────────
+// ACADEMIC TERMS Y BIMESTRES
+// ─────────────────────────────────────────
+
+model AcademicTerm {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  active    Boolean  @default(true)
+
+  school            School             @relation(fields: [schoolId], references: [id])
+  periods           Period[]
+  subjectTermGroups SubjectTermGroup[]  
+  studentGroupTerms StudentGroupTerm[]  
+
+  @@map("academic_terms")
+}
+
+model Period {
+  id             String   @id @default(cuid())
+  academicTermId String
+  number         Int      // 1 al 5
+  startDate      DateTime
+  endDate        DateTime
+  closed         Boolean  @default(false)
+
+  academicTerm          AcademicTerm           @relation(fields: [academicTermId], references: [id])
+  activities            Activity[]
+  finalGrades           FinalGrade[]
+
+  @@unique([academicTermId, number])
+  @@map("periods")
+}
+
+// ─────────────────────────────────────────
+// GROUPS
+// ─────────────────────────────────────────
+
+model Group {
+  id       String  @id @default(cuid())
+  schoolId String
+  grade    String  // "1", "2", "3"
+  letter   String  // "A", "B", "C"
+  active   Boolean @default(true)
+
+  school              School               @relation(fields: [schoolId], references: [id])
+  subjectTermGroups   SubjectTermGroup[]
+  studentGroupTerms   StudentGroupTerm[]
+
+  @@unique([schoolId, grade, letter])
+  @@map("groups")
+}
+
+// ─────────────────────────────────────────
+// SUBJECTS
+// La materia es del maestro, persiste entre ciclos
+// ─────────────────────────────────────────
+
+model Subject {
+  id        String  @id @default(cuid())
+  teacherId String
+  name      String  // "Física", "Matemáticas"
+  active    Boolean @default(true)
+
+  teacher           Teacher            @relation(fields: [teacherId], references: [id])
+  subjectTermGroups SubjectTermGroup[]
+  gradeCategories   GradeCategory[]
+
+  @@map("subjects")
+}
+
+// Vínculo: Subject + Group + AcademicTerm
+// "Física en 2°A durante el ciclo 2024-2025"
+// Unidad operativa central del sistema
+model SubjectTermGroup {
+  id             String @id @default(cuid())
+  subjectId      String
+  groupId        String
+  academicTermId String
+  active         Boolean @default(true)
+
+  subject      Subject      @relation(fields: [subjectId], references: [id])
+  group        Group        @relation(fields: [groupId], references: [id])
+  academicTerm AcademicTerm @relation(fields: [academicTermId], references: [id])
+
+  activities  Activity[]
+  finalGrades FinalGrade[]
+  attendances Attendance[]
+
+  @@unique([subjectId, groupId, academicTermId])
+  @@map("subject_term_groups")
+}
+
+// ─────────────────────────────────────────
+// GRADE CATEGORIES
+// El maestro define sus propias categorías y ponderaciones
+// ─────────────────────────────────────────
+
+model GradeCategory {
+  id         String @id @default(cuid())
+  subjectId  String
+  name       String // "Tareas", "Examen", "Proyectos"
+  percentage Int    // 30 (representa 30%), suma por materia = 100
+
+  subject    Subject    @relation(fields: [subjectId], references: [id])
+  activities Activity[]
+
+  @@map("grade_categories")
+}
+
+// ─────────────────────────────────────────
+// STUDENTS
+// ─────────────────────────────────────────
+
+model Student {
+  id              String    @id @default(cuid())
+  teacherId       String
+  name            String
+  firstLastName   String
+  secondLastName  String?
+  birthDate       DateTime?
+  tutorName       String?
+  tutorPhone      String?
+  deletedAt       DateTime?
+
+  teacher       Teacher            @relation(fields: [teacherId], references: [id])
+  groupTerms    StudentGroupTerm[]
+  grades        Grade[]
+  finalGrades   FinalGrade[]
+  attendances   Attendance[]
+
+  @@map("students")
+}
+
+// Alumno asignado a un grupo en un ciclo específico
+model StudentGroupTerm {
+  id           String   @id @default(cuid())
+  studentId    String
+  groupId      String
+  academicTermId String
+  active       Boolean  @default(true)
+  assignedAt   DateTime @default(now())
+
+  student      Student      @relation(fields: [studentId], references: [id])
+  group        Group        @relation(fields: [groupId], references: [id])
+  academicTerm AcademicTerm @relation(fields: [academicTermId], references: [id])
+
+  @@unique([studentId, groupId, academicTermId])
+  @@map("student_group_terms")
+}
+
+// ─────────────────────────────────────────
+// ACTIVITIES Y GRADES
+// ─────────────────────────────────────────
+
+model Activity {
+  id                 String    @id @default(cuid())
+  subjectTermGroupId String
+  categoryId         String
+  periodId           String
+  title              String
+  description        String?
+  dueDate            DateTime?
+  maxScore           Float     @default(10)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+
+  subjectTermGroup SubjectTermGroup @relation(fields: [subjectTermGroupId], references: [id])
+  category         GradeCategory   @relation(fields: [categoryId], references: [id])
+  period           Period          @relation(fields: [periodId], references: [id])
+  grades           Grade[]
+
+  @@map("activities")
+}
+
+model Grade {
+  id            String    @id @default(cuid())
+  activityId    String
+  studentId     String
+  score         Float?    // null = aún no calificado
+  didNotSubmit  Boolean   @default(false)
+  // Override manual
+  overrideScore   Float?
+  overrideReason  String?
+  overrideAt      DateTime?
+  // Control sync offline
+  syncedAt      DateTime?
+  deviceId      String?
+  version       Int       @default(1)
+  updatedAt     DateTime  @updatedAt
+
+  activity Activity @relation(fields: [activityId], references: [id])
+  student  Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([activityId, studentId])
+  @@map("grades")
+}
+
+// Calificación final por bimestre
+model FinalGrade {
+  id                 String    @id @default(cuid())
+  studentId          String
+  subjectTermGroupId String
+  periodId           String
+  calculatedScore    Float
+  finalScore         Float?
+  overrideReason     String?
+  overrideAt         DateTime?
+  closed             Boolean   @default(false)
+
+  student          Student          @relation(fields: [studentId], references: [id])
+  subjectTermGroup SubjectTermGroup @relation(fields: [subjectTermGroupId], references: [id])
+  period           Period           @relation(fields: [periodId], references: [id])
+
+  @@unique([studentId, subjectTermGroupId, periodId])
+  @@map("final_grades")
+}
+
+// ─────────────────────────────────────────
+// ATTENDANCE
+// ─────────────────────────────────────────
+
+model Attendance {
+  id                 String          @id @default(cuid())
+  studentId          String
+  subjectTermGroupId String
+  date               DateTime        @db.Date
+  status             AttendanceStatus @default(PRESENT)
+  // Control sync offline
+  syncedAt           DateTime?
+  deviceId           String?
+  version            Int             @default(1)
+  updatedAt          DateTime        @updatedAt
+
+  student          Student          @relation(fields: [studentId], references: [id])
+  subjectTermGroup SubjectTermGroup @relation(fields: [subjectTermGroupId], references: [id])
+
+  @@unique([studentId, subjectTermGroupId, date])
+  @@index([subjectTermGroupId, date])
+  @@index([studentId, subjectTermGroupId])
+  @@map("attendances")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+// ─────────────────────────────────────────
+// SHARED LINKS
+// ─────────────────────────────────────────
+
+model SharedLink {
+  id          String       @id @default(cuid())
+  teacherId   String
+  token       String       @unique @default(cuid())
+  type        SharedLinkType
+  referenceId String
+  expiresAt   DateTime?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@map("shared_links")
+}
+
+enum SharedLinkType {
+  GRADES
+  ATTENDANCE
+}

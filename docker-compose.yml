@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: seda_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: seda_user
+      POSTGRES_PASSWORD: seda_password
+      POSTGRES_DB: seda_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - seda_pgdata:/var/lib/postgresql/data
+
+volumes:
+  seda_pgdata:
