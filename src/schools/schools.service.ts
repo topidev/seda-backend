@@ -16,7 +16,7 @@ export class SchoolsService {
                 name: dto.name,
                 shift: dto.shift,
                 level: dto.level,
-                tachers: {
+                teachers: {
                     create: {
                         teacherId,
                     }
@@ -46,6 +46,10 @@ export class SchoolsService {
     }
 
     async findOne(teacherId: string, schoolId: string) {
+
+        console.log('teacherId:', teacherId)
+        console.log('schoolId:', schoolId)
+
         const school = await this.prisma.school.findFirst({
             where: {
                 id: schoolId,
@@ -63,6 +67,8 @@ export class SchoolsService {
                 },
             },
         })
+
+        console.log('Escuela Encontrada', school)
 
         if (!school) throw new NotFoundException('Escuela No Encontrada.')
         
@@ -87,7 +93,7 @@ export class SchoolsService {
 
     // ---------------- TERMS ------------------------
 
-    async createTerm(schoolId: string, teacherId: string, dto: CreateTermDto) {
+    async createTerm(teacherId: string, schoolId: string, dto: CreateTermDto) {
         await this.findOne(teacherId, schoolId)
 
         const start = new Date(dto.startDate)
@@ -117,10 +123,10 @@ export class SchoolsService {
                         }
                     })
                 },
-                include: {
-                    periods: {
-                        orderBy: { number: 'asc' },
-                    }
+            },
+            include: {
+                periods: {
+                    orderBy: { number: 'asc' },
                 }
             }
         })
