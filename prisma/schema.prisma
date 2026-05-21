@@ -90,6 +90,7 @@ model AcademicTerm {
   startDate DateTime
   endDate   DateTime
   active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 
   school            School             @relation(fields: [schoolId], references: [id])
   periods           Period[]
