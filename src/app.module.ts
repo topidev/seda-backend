@@ -6,6 +6,9 @@ import { ConfigModule } from '@nestjs/config';
 import { validate } from './config/env.validation';
 import { AuthModule } from './auth/auth.module';
 import { SchoolsModule } from './schools/schools.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { GroupsModule } from './groups/groups.module';
+import { StudentsModule } from './students/students.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { SchoolsModule } from './schools/schools.module';
     PrismaModule,
     AuthModule,
     SchoolsModule,
+    SubjectsModule,
+    GroupsModule,
+    StudentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
