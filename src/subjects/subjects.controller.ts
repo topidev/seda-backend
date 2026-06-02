@@ -20,6 +20,11 @@ export class SubjectsController {
         return this.subjectsService.findOne(req.user.id, subjectId)
     }
 
+    @Get()
+    findAll(@Req() req: any) {
+        return this.subjectsService.findAll(req.user.id)
+    }
+
     @Patch(':id')
     update(
         @Req() req: any,

@@ -97,7 +97,18 @@ export class StudentsService {
       include: {
         groupTerms: {
           where: { active: true },
-          include: { group: true },
+          include: { 
+            group: {
+              include: {
+                subjectTermGroups: {
+                  where: { active: true },
+                  include: {
+                    subject: true
+                  },
+                },
+              },
+            } 
+          },
         },
       },
     })

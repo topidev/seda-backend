@@ -43,6 +43,9 @@ export class SubjectsService {
       where: { id: subjectId, teacherId, active: true },
       include: {
         gradeCategories: true,
+        _count: {
+          select: { subjectTermGroups: true },
+        },
         subjectTermGroups: {
           where: { active: true },
           include: {
