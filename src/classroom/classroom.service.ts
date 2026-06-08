@@ -266,47 +266,116 @@ export class ClassroomService {
 				)
     }
 
-		// Calificaciones Bimestrales
-		async getPeriodGrades(teacherId: string, subjectTermGroupId: string, periodId: string) {
-			await this.findOneClass(teacherId, subjectTermGroupId)
+    // Calificaciones Bimestrales
+    async getPeriodGrades(teacherId: string, subjectTermGroupId: string, periodId: string) {
+        await this.findOneClass(teacherId, subjectTermGroupId)
 
-			return this.prisma.finalGrade.findMany({
-				where: {
-					subjectTermGroupId,
-					periodId
-				},
-				include: {
-					student: true
-				},
-				orderBy: [
-					{ student: { firstLastName: 'asc' }},
-					{ student: { name: 'asc' }}
-				]
-			})
-		}
+        return this.prisma.finalGrade.findMany({
+            where: {
+                subjectTermGroupId,
+                periodId
+            },
+            include: {
+                student: true
+            },
+            orderBy: [
+                { student: { firstLastName: 'asc' }},
+                { student: { name: 'asc' }}
+            ]
+        })
+    }
 
-		async overrideFinalGrade(
-			teacherId: string,
-			finalGradeId: string,
-			finalScore: number,
-			overrideReason?: string
-		){
-			const finalGrade = await this.prisma.finalGrade.findFirst({
-				where: {
-					id: finalGradeId,
-					subjectTermGroup: { subject: { teacherId } }
-				},
-			})
+    async overrideFinalGrade(
+        teacherId: string,
+        finalGradeId: string,
+        finalScore: number,
+        overrideReason?: string
+    ){
+        const finalGrade = await this.prisma.finalGrade.findFirst({
+            where: {
+                id: finalGradeId,
+                subjectTermGroup: { subject: { teacherId } }
+            },
+        })
 
-			if (!finalGrade) throw new NotFoundException('Calificación no encontrada')
-			
-			return this.prisma.finalGrade.update({
-				where: { id: finalGradeId },
-				data: {
-					finalScore,
-					overrideReason,
-					overrideAt: new Date()
-				}
-			})
-		}
+        if (!finalGrade) throw new NotFoundException('Calificación no encontrada')
+        
+        return this.prisma.finalGrade.update({
+            where: { id: finalGradeId },
+            data: {
+                finalScore,
+                overrideReason,
+                overrideAt: new Date()
+            }
+        })
+    }
+
+    // ----------> Asistencia
+
+    async saveAttendance(
+        teacherId: string,
+        subjectTermGroupId: string,
+        date: string,
+        records: { studentId: string; status: string }[],
+    ) {
+        await this.findOneClass(teacherId, subjectTermGroupId)
+
+        const attendanceDate = new Date(date)
+
+        // Upsert de cada registro de asistencia
+        await Promise.all(
+            records.map(record =>
+                this.prisma.attendance.upsert({
+                    where: {
+                    studentId_subjectTermGroupId_date: {
+                        studentId: record.studentId,
+                        subjectTermGroupId,
+                        date: attendanceDate,
+                    },
+                    },
+                    update: {
+                    status: record.status as any,
+                    version: { increment: 1 },
+                    updatedAt: new Date(),
+                    },
+                    create: {
+                    studentId: record.studentId,
+                    subjectTermGroupId,
+                    date: attendanceDate,
+                    status: record.status as any,
+                    },
+                }),
+            ),
+        )
+
+        return { success: true }
+    }
+
+    async getAttendanceByDate(
+        teacherId: string,
+        subjectTermGroupId: string,
+        date: string,
+    ) {
+        await this.findOneClass(teacherId, subjectTermGroupId)
+
+        return this.prisma.attendance.findMany({
+            where: {
+            subjectTermGroupId,
+            date: new Date(date),
+            },
+        })
+    }
+
+    async getAttendanceHistory(
+        teacherId: string,
+        subjectTermGroupId: string,
+    ) {
+        await this.findOneClass(teacherId, subjectTermGroupId)
+
+        return this.prisma.attendance.findMany({
+            where: { subjectTermGroupId },
+            include: { student: true },
+            orderBy: { date: 'desc' },
+        })
+    }
 }

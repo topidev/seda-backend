@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards, Delete, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards, Delete, Patch, Query } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ClassroomService } from './classroom.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
@@ -96,6 +96,46 @@ export class ClassroomController {
             finalGradeId,
             body.finalScore,
             body.overrideReason
+        )
+    }
+
+    // ---------------> Asistencia
+
+    @Post(':id/attendance')
+        saveAttendance(
+        @Req() req: any,
+        @Param('id') subjectTermGroupId: string,
+        @Body() body: { date: string; records: { studentId: string; status: string }[] },
+    ) {
+        return this.classroomService.saveAttendance(
+            req.user.id,
+            subjectTermGroupId,
+            body.date,
+            body.records,
+        )
+    }
+
+    @Get(':id/attendance')
+        getAttendanceByDate(
+        @Req() req: any,
+        @Param('id') subjectTermGroupId: string,
+        @Query('date') date: string,
+    ) {
+        return this.classroomService.getAttendanceByDate(
+            req.user.id,
+            subjectTermGroupId,
+            date,
+        )
+    }
+
+    @Get(':id/attendance/history')
+        getAttendanceHistory(
+        @Req() req: any,
+        @Param('id') subjectTermGroupId: string,
+    ) {
+        return this.classroomService.getAttendanceHistory(
+            req.user.id,
+            subjectTermGroupId,
         )
     }
 }
