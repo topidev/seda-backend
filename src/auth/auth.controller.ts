@@ -47,7 +47,7 @@ export class AuthController {
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: this.config.get('NODE_ENV') === 'production',
-      sameSite: 'lax',
+      sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
     })
 
