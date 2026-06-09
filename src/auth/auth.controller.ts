@@ -93,7 +93,7 @@ export class AuthController {
 
   @Post('refresh')
   @UseGuards(JwtRefreshGuard)
-  async refresh(@Req() req: Request, @Res() res: Response) {
+  async refresh(@Req() req: any, @Res() res: Response) {
     const user = req.user as {
       sub: string
       email: string
