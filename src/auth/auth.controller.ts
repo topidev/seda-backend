@@ -44,12 +44,20 @@ export class AuthController {
 
     // Manda el refresh token en cookie httpOnly
     // (no accesible desde JavaScript, más seguro)
+
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
-      sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
+      secure: true,                // Siempre true en Railway (HTTPS)
+      sameSite: 'none',            // Obligatorio para cross-origin
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      // NO especifiques 'domain' a menos que frontend y backend compartan el mismo dominio raíz
     })
+    // res.cookie('refresh_token', refreshToken, {
+    //   httpOnly: true,
+    //   secure: this.config.get('NODE_ENV') === 'production',
+    //   sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
+    //   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
+    // })
 
     // Redirige al frontend con el access token en la URL
     // el frontend lo captura y lo guarda en memoria
@@ -126,5 +134,16 @@ export class AuthController {
       parsedCookies: req.cookies,
       hasRefreshToken: !!req.cookies?.refresh_token,
     };
+  }
+
+  @Get('set-test-cookie')
+  setTestCookie(@Res() res: Response) {
+    res.cookie('test_cookie', 'hello', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 60 * 1000
+    });
+    res.json({ ok: true });
   }
 }
