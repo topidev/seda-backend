@@ -55,7 +55,7 @@ export class AuthController {
     // el frontend lo captura y lo guarda en memoria
     const frontendUrl = this.config.get<string>('FRONTEND_URL')
     res.redirect(
-      `${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`
+      `${frontendUrl}/auth/callback?token=${accessToken}`
     )
   }
 
@@ -101,10 +101,14 @@ export class AuthController {
       refreshToken: string
     }
 
+    console.log("User:", user)
     const { accessToken, refreshToken } = await this.authService.refreshTokens(
       user.sub,
       user.refreshToken,
     )
+
+    console.log("accessToken: ->", accessToken)
+    console.log("refreshTOken: ->", refreshToken)
 
     // Actualiza la cookie con el nuevo refresh token
     res.cookie('refresh_token', refreshToken, {
@@ -114,7 +118,7 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
 
-    res.json({ accessToken, refreshToken  })
+    res.json({ accessToken })
   }
 
 
