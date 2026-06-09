@@ -54,7 +54,9 @@ export class AuthController {
     // Redirige al frontend con el access token en la URL
     // el frontend lo captura y lo guarda en memoria
     const frontendUrl = this.config.get<string>('FRONTEND_URL')
-    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}`)
+    res.redirect(
+      `${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`
+    )
   }
 
   // Ruta protegida: solo accesible con JWT válido
@@ -112,7 +114,7 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
 
-    res.json({ accessToken })
+    res.json({ accessToken, refreshToken  })
   }
 
 
