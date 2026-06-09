@@ -114,4 +114,17 @@ export class AuthController {
 
     res.json({ accessToken })
   }
+
+
+  @Get('debug-cookies')
+  debugCookies(@Req() req: Request) {
+    console.log('=== DEBUG COOKIES ===');
+    console.log('Headers cookie:', req.headers.cookie);
+    console.log('Parsed cookies:', req.cookies);
+    return {
+      headersCookie: req.headers.cookie || 'none',
+      parsedCookies: req.cookies,
+      hasRefreshToken: !!req.cookies?.refresh_token,
+    };
+  }
 }
