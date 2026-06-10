@@ -11,6 +11,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       // Lee el token de la cookie en lugar del header Authorization
       jwtFromRequest: ExtractJwt.fromExtractors([
         (req: Request) => req?.cookies?.refresh_token ?? null,
+        // Ahora leer del body
+        (req: Request) => req?.body?.refreshToken ?? null,
       ]),
       secretOrKey: config.get<string>('JWT_REFRESH_SECRET')!,
       ignoreExpiration: false,
@@ -24,7 +26,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     console.log('Cookies recibidas:', req.cookies);
     console.log('Refresh token de cookie:', req.cookies?.refresh_token);
     
-    const refreshToken = req?.cookies?.refresh_token
+    const refreshToken = req?.cookies?.refresh_token ?? req?.body?.refreshToken
+    
     if (!refreshToken) {
       console.log('❌ No refresh token en cookie');
       throw new UnauthorizedException('Refresh token no encontrado')
