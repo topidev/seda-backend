@@ -15,6 +15,11 @@ export class ClassroomController {
         return this.classroomService.findMyClasses(req.user.id)
     }
 
+    @Get('dashboard/summary')
+    getDashboardSummary(@Req() req: any) {
+        return this.classroomService.getDashboardSummary(req.user.id)
+    }
+
     @Get(':id')
     findOneClass(@Req() req: any, @Param('id') subjectTermGroupId: string) {
         return this.classroomService.findOneClass(req.user.id, subjectTermGroupId)

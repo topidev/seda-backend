@@ -266,7 +266,7 @@ export class ClassroomService {
 				)
     }
 
-    // Calificaciones Bimestrales
+    // --------> Calificaciones Bimestrales
     async getPeriodGrades(teacherId: string, subjectTermGroupId: string, periodId: string) {
         await this.findOneClass(teacherId, subjectTermGroupId)
 
@@ -378,4 +378,64 @@ export class ClassroomService {
             orderBy: { date: 'desc' },
         })
     }
+
+    async getDashboardSummary(teacherId: string) {
+			const [students, groups, classes, pendingGrades] = await Promise.all([
+				// Total de alumnos activos
+				this.prisma.student.count({
+					where: { teacherId, deletedAt: null },
+				}),
+
+				// Total de grupos activos
+				this.prisma.group.count({
+					where: {
+						active: true,
+						school: {
+							teachers: { some: { teacherId, active: true } },
+						},
+					},
+				}),
+
+				// Clases activas del ciclo activo
+				this.prisma.subjectTermGroup.findMany({
+					where: {
+							active: true,
+							subject: { teacherId },
+							academicTerm: { active: true },
+					},
+					include: {
+							subject: true,
+							group: { include: { school: true } },
+							academicTerm: true,
+					},
+					orderBy: [
+							{ subject: { name: 'asc' } },
+							{ group: { grade: 'asc' } },
+					],
+					take: 5, // solo las primeras 5 para el dashboard
+				}),
+
+				// Actividades sin calificar completamente
+				this.prisma.activity.count({
+					where: {
+						deletedAt: null,
+						subjectTermGroup: {
+							subject: { teacherId },
+							academicTerm: { active: true },
+						},
+						grades: {
+							none: {},
+						},
+					},
+				}),
+		])
+
+		return {
+				totalStudents: students,
+				totalGroups: groups,
+				totalClasses: classes.length,
+				pendingGrades,
+				recentClasses: classes,
+		}
+	}
 }
