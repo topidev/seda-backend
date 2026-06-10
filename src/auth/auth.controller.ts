@@ -101,14 +101,10 @@ export class AuthController {
       refreshToken: string
     }
 
-    console.log("User:", user.email)
     const { accessToken, refreshToken } = await this.authService.refreshTokens(
       user.sub,
       user.refreshToken,
     )
-
-    console.log("accessToken: ->", accessToken)
-    console.log("refreshTOken: ->", refreshToken)
 
     // Actualiza la cookie con el nuevo refresh token
     res.cookie('refresh_token', refreshToken, {
@@ -119,29 +115,5 @@ export class AuthController {
     })
 
     res.json({ accessToken, refreshToken })
-  }
-
-
-  @Get('debug-cookies')
-  debugCookies(@Req() req: Request) {
-    console.log('=== DEBUG COOKIES ===');
-    console.log('Headers cookie:', req.headers.cookie);
-    console.log('Parsed cookies:', req.cookies);
-    return {
-      headersCookie: req.headers.cookie || 'none',
-      parsedCookies: req.cookies,
-      hasRefreshToken: !!req.cookies?.refresh_token,
-    };
-  }
-
-  @Get('set-test-cookie')
-  setTestCookie(@Res() res: Response) {
-    res.cookie('test_cookie', 'hello', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 60 * 1000
-    });
-    res.json({ ok: true });
   }
 }
