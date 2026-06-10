@@ -44,18 +44,18 @@ export class AuthController {
 
     // Manda el refresh token en cookie httpOnly
     // (no accesible desde JavaScript, más seguro)
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
-      sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
-    })
+    // res.cookie('refresh_token', refreshToken, {
+    //   httpOnly: true,
+    //   secure: this.config.get('NODE_ENV') === 'production',
+    //   sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
+    //   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
+    // })
 
     // Redirige al frontend con el access token en la URL
     // el frontend lo captura y lo guarda en memoria
     const frontendUrl = this.config.get<string>('FRONTEND_URL')
     res.redirect(
-      `${frontendUrl}/auth/callback?token=${accessToken}`
+      `${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`
     )
   }
 
@@ -101,7 +101,7 @@ export class AuthController {
       refreshToken: string
     }
 
-    console.log("User:", user)
+    console.log("User:", user.email)
     const { accessToken, refreshToken } = await this.authService.refreshTokens(
       user.sub,
       user.refreshToken,
@@ -118,7 +118,7 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
 
-    res.json({ accessToken })
+    res.json({ accessToken, refreshToken })
   }
 
 
