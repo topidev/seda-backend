@@ -18,7 +18,12 @@ export class ClassroomService {
             include: {
                 subject: true,
                 group: {
-                    include: { school: true }
+                    include: { 
+                        school: true,
+                        studentGroupTerms: {
+                            where: { active: true }
+                        } 
+                    }
                 },
                 academicTerm: {
                     include: {
