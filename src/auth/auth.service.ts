@@ -91,6 +91,10 @@ export class AuthService {
       where: { id: teacherId },
     })
 
+    console.log('Teacher encontrado:', !!teacher)
+    console.log('Teacher activo:', teacher?.active)
+    console.log('Tienen Refresh en BD:', !!teacher?.refreshToken)
+
     // Si el maestro no existe, fue desactivado, o no tiene refresh token
     if (!teacher || !teacher.active || !teacher.refreshToken) {
       throw new UnauthorizedException('Acceso denegado')
@@ -98,6 +102,7 @@ export class AuthService {
 
     // Verifica que el refresh token que mandó coincide con el guardado en DB
     const tokenMatches = await argon2.verify(teacher.refreshToken, refreshToken)
+    console.log('Token Matches:', tokenMatches)
 
     if (!tokenMatches) {
       throw new UnauthorizedException('Acceso denegado')
