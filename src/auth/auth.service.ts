@@ -85,30 +85,31 @@ export class AuthService {
       data: { refreshToken: null },
     })
   }
+  async refreshAccessToken(teacherId: string, email: string, role: string): Promise<string> {
+    const payload: JwtPayload = { sub: teacherId, email, role }
+    return this.generateAccessToken(payload)
+  }
 
   async refreshTokens(teacherId: string, refreshToken: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id: teacherId },
     })
 
-    console.log('Teacher encontrado:', !!teacher)
-    console.log('Teacher activo:', teacher?.active)
-    console.log('Tienen Refresh en BD:', !!teacher?.refreshToken)
-
-    // Si el maestro no existe, fue desactivado, o no tiene refresh token
     if (!teacher || !teacher.active || !teacher.refreshToken) {
       throw new UnauthorizedException('Acceso denegado')
     }
 
-    // Verifica que el refresh token que mandó coincide con el guardado en DB
     const tokenMatches = await argon2.verify(teacher.refreshToken, refreshToken)
-    console.log('Token Matches:', tokenMatches)
 
     if (!tokenMatches) {
       throw new UnauthorizedException('Acceso denegado')
     }
+    const accessToken = await this.refreshAccessToken(
+      teacher.id,
+      teacher.email,
+      teacher.role,
+    )
 
-    // Todo válido, genera nuevos tokens
-    return this.generateTokens(teacher.id, teacher.email, teacher.role)
+    return { accessToken, refreshToken }
   }
 }
