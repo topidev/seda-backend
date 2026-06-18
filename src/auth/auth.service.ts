@@ -59,6 +59,8 @@ export class AuthService {
 
   // Genera ambos tokens y devuelve los dos
   async generateTokens(teacherId: string, email: string, role: string) {
+    console.log('generateTokens llamado para:', teacherId)
+    console.log('Stack: ', new Error().stack?.split('\n')[2])
     const payload: JwtPayload = { sub: teacherId, email, role }
 
     const [accessToken, refreshToken] = await Promise.all([
