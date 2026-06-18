@@ -95,11 +95,16 @@ export class AuthService {
       where: { id: teacherId },
     })
 
+    console.log('TEacher Encontrado: ', !!teacher)
+    console.log('Token en DB: ', !!teacher?.refreshToken)
+  
+
     if (!teacher || !teacher.active || !teacher.refreshToken) {
       throw new UnauthorizedException('Acceso denegado')
     }
 
     const tokenMatches = await argon2.verify(teacher.refreshToken, refreshToken)
+    console.log('Token matches: ', tokenMatches)
 
     if (!tokenMatches) {
       throw new UnauthorizedException('Acceso denegado')
