@@ -105,6 +105,7 @@ export class AuthService {
       throw new UnauthorizedException('Acceso denegado')
     }
 
+    console.log('RefreshToken recibido (20 chars): ', refreshToken.substring(0, 20))
     const tokenMatches = await argon2.verify(teacher.refreshToken, refreshToken)
     console.log('Token matches: ', tokenMatches)
 

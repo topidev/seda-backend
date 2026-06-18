@@ -53,6 +53,8 @@ export class AuthController {
 
     // Redirige al frontend con el access token en la URL
     // el frontend lo captura y lo guarda en memoria
+
+    console.log('RefeshToken generado (primeros 20 char): ', refreshToken.substring(0, 20))
     const frontendUrl = this.config.get<string>('FRONTEND_URL')
     res.redirect(
       `${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`
