@@ -93,19 +93,17 @@ export class AuthService {
   }
 
   async refreshTokens(teacherId: string, refreshToken: string) {
+    console.log('RefreshToken recibido (20 chars): ', refreshToken.slice(-25))
+    
     const teacher = await this.prisma.teacher.findUnique({
       where: { id: teacherId },
     })
-
-    console.log('TEacher Encontrado: ', !!teacher)
-    console.log('Token en DB: ', !!teacher?.refreshToken)
-  
 
     if (!teacher || !teacher.active || !teacher.refreshToken) {
       throw new UnauthorizedException('Acceso denegado')
     }
 
-    console.log('RefreshToken recibido (20 chars): ', refreshToken.slice(-25))
+    console.log('Token BD Hash: ', teacher.refreshToken.slice(-25))
     const tokenMatches = await argon2.verify(teacher.refreshToken, refreshToken)
     console.log('Token matches: ', tokenMatches)
 
