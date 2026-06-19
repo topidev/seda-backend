@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common'
 import type { Response, Request } from 'express'
 import { ConfigService } from '@nestjs/config'
 import { AuthService } from './auth.service'
@@ -41,19 +41,19 @@ export class AuthController {
 
     // Manda el refresh token en cookie httpOnly
     // (no accesible desde JavaScript, más seguro)
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
-      sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
-    })
+    // res.cookie('refresh_token', refreshToken, {
+    //   httpOnly: true,
+    //   secure: this.config.get('NODE_ENV') === 'production',
+    //   sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
+    //   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
+    // })
 
     // Redirige al frontend con el access token en la URL
     // el frontend lo captura y lo guarda en memoria
 
     console.log('RefeshToken generado (primeros 20 char): ', refreshToken.slice(-25))
     const frontendUrl = this.config.get<string>('FRONTEND_URL')
-    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}`)
+    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`)
   }
 
   // Ruta protegida: solo accesible con JWT válido
@@ -116,5 +116,19 @@ export class AuthController {
     })
 
     res.json({ accessToken })
+  }
+
+  @Post('set-cookie') 
+  setCookie(
+    @Body() body: { refreshToken: string },
+    @Res() res: Response,
+  ) {
+    res.cookie('refresh-token', body.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    })
+    res.json({ ok: true })
   }
 }
