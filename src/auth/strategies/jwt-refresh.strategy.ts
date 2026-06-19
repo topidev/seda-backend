@@ -25,7 +25,6 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     
     const refreshToken = req?.cookies?.refresh_token
 
-    console.log('Body recibido:', req.body)
     console.log('RefreshToken encontrado:', !!refreshToken)
     
     if (!refreshToken) {

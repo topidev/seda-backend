@@ -59,8 +59,6 @@ export class AuthService {
 
   // Genera ambos tokens y devuelve los dos
   async generateTokens(teacherId: string, email: string, role: string) {
-    console.log('generateTokens llamado para:', teacherId)
-    console.log('Stack: ', new Error().stack?.split('\n')[2])
     const payload: JwtPayload = { sub: teacherId, email, role }
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -72,10 +70,20 @@ export class AuthService {
     // si alguien roba la DB no obtiene el token real
     const hashedRefreshToken = await argon2.hash(refreshToken)
 
+    console.log('Token generado: ', refreshToken.slice(-10))
+    console.log('Hash guardado: ', hashedRefreshToken.slice(-10))
+
     await this.prisma.teacher.update({
       where: { id: teacherId },
       data: { refreshToken: hashedRefreshToken },
     })
+
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: teacherId }
+    })
+
+    const veryfyNow = await argon2.verify(teacher!.refreshToken!, refreshToken)
+    console.log('Verificación inmediata despues de guardar.', veryfyNow)
 
     return { accessToken, refreshToken }
   }
