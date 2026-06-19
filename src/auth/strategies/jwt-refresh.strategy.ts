@@ -12,7 +12,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       jwtFromRequest: ExtractJwt.fromExtractors([
         (req: Request) => req?.cookies?.refresh_token ?? null,
         // Ahora leer del body
-        (req: Request) => req?.body?.refreshToken ?? null,
+        // (req: Request) => req?.body?.refreshToken ?? null,
       ]),
       secretOrKey: config.get<string>('JWT_REFRESH_SECRET')!,
       ignoreExpiration: false,
@@ -23,7 +23,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
 
   async validate(req: Request, payload: { sub: string; email: string; role: string }) {
     
-    const refreshToken = req?.cookies?.refresh_token ?? req?.body?.refreshToken
+    const refreshToken = req?.cookies?.refresh_token
 
     console.log('Body recibido:', req.body)
     console.log('RefreshToken encontrado:', !!refreshToken)

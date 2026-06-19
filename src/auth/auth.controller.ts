@@ -16,10 +16,7 @@ export class AuthController {
   // Paso 1: redirige a Google
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  googleLogin() {
-    // GoogleAuthGuard maneja la redirección automáticamente
-    // este método no necesita hacer nada
-  }
+  googleLogin() { }
 
   // Paso 2: Google regresa aquí con los datos del usuario
   @Get('google/callback')
@@ -44,21 +41,19 @@ export class AuthController {
 
     // Manda el refresh token en cookie httpOnly
     // (no accesible desde JavaScript, más seguro)
-    // res.cookie('refresh_token', refreshToken, {
-    //   httpOnly: true,
-    //   secure: this.config.get('NODE_ENV') === 'production',
-    //   sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-    //   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
-    // })
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: this.config.get('NODE_ENV') === 'production',
+      sameSite: this.config.get('NODE_ENV') === 'production' ? 'none' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días en milisegundos
+    })
 
     // Redirige al frontend con el access token en la URL
     // el frontend lo captura y lo guarda en memoria
 
     console.log('RefeshToken generado (primeros 20 char): ', refreshToken.slice(-25))
     const frontendUrl = this.config.get<string>('FRONTEND_URL')
-    res.redirect(
-      `${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`
-    )
+    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}`)
   }
 
   // Ruta protegida: solo accesible con JWT válido
@@ -89,7 +84,11 @@ export class AuthController {
     const teacher = req.user as { id: string }
     await this.authService.logout(teacher.id)
 
-    res.clearCookie('refresh_token')
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    })
     res.json({ message: 'Sesión cerrada correctamente' })
   }
 
@@ -116,6 +115,6 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
 
-    res.json({ accessToken, refreshToken })
+    res.json({ accessToken })
   }
 }

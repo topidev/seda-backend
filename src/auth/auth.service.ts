@@ -110,12 +110,13 @@ export class AuthService {
     if (!tokenMatches) {
       throw new UnauthorizedException('Acceso denegado')
     }
-    const accessToken = await this.refreshAccessToken(
-      teacher.id,
-      teacher.email,
-      teacher.role,
-    )
+    // const accessToken = await this.refreshAccessToken(
+    //   teacher.id,
+    //   teacher.email,
+    //   teacher.role,
+    // )
 
-    return { accessToken, refreshToken }
+    // return { accessToken, refreshToken }
+    return this.generateTokens(teacher.id, teacher.email, teacher.role)
   }
 }
