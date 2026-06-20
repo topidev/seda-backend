@@ -22,10 +22,15 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
   }
 
   async validate(req: Request, payload: { sub: string; email: string; role: string }) {
-    
-    const refreshToken = req?.cookies?.refresh_token
+    const fromCookie = req?.cookies?.refresh_token
+    const fromBody = req?.body?.refreshToken
+    const refreshToken = fromCookie ?? fromBody
 
-    console.log('RefreshToken encontrado:', !!refreshToken)
+    console.log('Token de cookie (últimos 10):', fromCookie?.slice(-10))
+    console.log('Token de body (últimos 10):', fromBody?.slice(-10))
+    console.log('Usando:', fromCookie ? 'COOKIE' : 'BODY')
+
+    // console.log('RefreshToken encontrado:', !!refreshToken)
     
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token no encontrado')
