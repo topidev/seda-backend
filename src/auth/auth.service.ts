@@ -124,7 +124,17 @@ export class AuthService {
     //   teacher.role,
     // )
 
+    const payload: JwtPayload = {
+      sub: teacher.id,
+      email: teacher.email,
+      role: teacher.role
+    }
+
+    const accessToken = await this.generateAccessToken(payload)
+
+    return { accessToken, refreshToken }
+
     // return { accessToken, refreshToken }
-    return this.generateTokens(teacher.id, teacher.email, teacher.role)
+    // return this.generateTokens(teacher.id, teacher.email, teacher.role)
   }
 }

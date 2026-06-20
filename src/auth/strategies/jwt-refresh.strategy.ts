@@ -12,7 +12,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       jwtFromRequest: ExtractJwt.fromExtractors([
         (req: Request) => req?.cookies?.refresh_token ?? null,
         // Ahora leer del body
-        // (req: Request) => req?.body?.refreshToken ?? null,
+        (req: Request) => req?.body?.refreshToken ?? null,
       ]),
       secretOrKey: config.get<string>('JWT_REFRESH_SECRET')!,
       ignoreExpiration: false,
