@@ -22,7 +22,7 @@ model Teacher {
   photo        String?
   role         Role     @default(TEACHER)
   active       Boolean  @default(true)
-  refreshToken String?  // ← agrega esta línea
+  refreshTokens RefreshToken[]
   createdAt    DateTime @default(now())
 
   schools          SchoolTeacher[]
@@ -31,6 +31,19 @@ model Teacher {
   sharedLinks      SharedLink[]
 
   @@map("teachers")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  teacherId String
+  token     String   
+  deviceId  String?  
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@map("refresh_tokens")
 }
 
 enum Role {

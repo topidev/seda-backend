@@ -73,26 +73,41 @@ export class AuthService {
     console.log('Token generado: ', refreshToken.slice(-10))
     console.log('Hash guardado: ', hashedRefreshToken.slice(-10))
 
-    await this.prisma.teacher.update({
-      where: { id: teacherId },
-      data: { refreshToken: hashedRefreshToken },
+    await this.prisma.refreshToken.create({
+      data: {
+        teacherId,
+        token: hashedRefreshToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
     })
 
-    const teacher = await this.prisma.teacher.findUnique({
-      where: { id: teacherId }
+    // Limpia tokens expirados del maestro
+    await this.prisma.refreshToken.deleteMany({
+      where: {
+        teacherId,
+        expiresAt: { lt: new Date() },
+      },
     })
 
-    const veryfyNow = await argon2.verify(teacher!.refreshToken!, refreshToken)
-    console.log('Verificación inmediata despues de guardar.', veryfyNow)
+    // await this.prisma.teacher.update({
+    //   where: { id: teacherId },
+    //   data: { refreshToken: hashedRefreshToken },
+    // })
+
+    // const teacher = await this.prisma.teacher.findUnique({
+    //   where: { id: teacherId }
+    // })
+
+    // const veryfyNow = await argon2.verify(teacher!.refreshToken!, refreshToken)
+    // console.log('Verificación inmediata despues de guardar.', veryfyNow)
 
     return { accessToken, refreshToken }
   }
 
   async logout(teacherId: string) {
-    // Borra el refresh token de la DB
-    await this.prisma.teacher.update({
-      where: { id: teacherId },
-      data: { refreshToken: null },
+    // Borra todos los refresh tokens del maestro
+    await this.prisma.refreshToken.deleteMany({
+      where: { teacherId },
     })
   }
   async refreshAccessToken(teacherId: string, email: string, role: string): Promise<string> {
@@ -103,31 +118,45 @@ export class AuthService {
   async refreshTokens(teacherId: string, refreshToken: string) {
     console.log('RefreshToken recibido (20 chars): ', refreshToken.slice(-25))
     
+    // Busca todos los tokens activos del maestro
+    const tokens = await this.prisma.refreshToken.findMany({
+      where: {
+        teacherId,
+        expiresAt: { gt: new Date() },
+      },
+    })
+
+    if (!tokens.length) {
+      throw new UnauthorizedException('Acceso denegado')
+    }
+
+    // Verifica contra cada token hasta encontrar el que coincide
+    let matchedToken: typeof tokens[0] | null = null
+
+    for (const t of tokens) {
+      const matches = await argon2.verify(t.token, refreshToken)
+      if (matches) {
+        matchedToken = t
+        break
+      }
+    }
+
+    if (!matchedToken) {
+      throw new UnauthorizedException('Acceso denegado')
+    }
+
     const teacher = await this.prisma.teacher.findUnique({
       where: { id: teacherId },
     })
 
-    if (!teacher || !teacher.active || !teacher.refreshToken) {
+    if (!teacher || !teacher.active) {
       throw new UnauthorizedException('Acceso denegado')
     }
-
-    console.log('Token BD Hash: ', teacher.refreshToken.slice(-25))
-    const tokenMatches = await argon2.verify(teacher.refreshToken, refreshToken)
-    console.log('Token matches: ', tokenMatches)
-
-    if (!tokenMatches) {
-      throw new UnauthorizedException('Acceso denegado')
-    }
-    // const accessToken = await this.refreshAccessToken(
-    //   teacher.id,
-    //   teacher.email,
-    //   teacher.role,
-    // )
 
     const payload: JwtPayload = {
       sub: teacher.id,
       email: teacher.email,
-      role: teacher.role
+      role: teacher.role,
     }
 
     const accessToken = await this.generateAccessToken(payload)

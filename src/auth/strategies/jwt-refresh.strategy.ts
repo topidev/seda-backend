@@ -24,7 +24,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
   async validate(req: Request, payload: { sub: string; email: string; role: string }) {
     const fromCookie = req?.cookies?.refresh_token
     const fromBody = req?.body?.refreshToken
-    const refreshToken = fromCookie ?? fromBody
+    const refreshToken = req?.cookies?.refresh_token ?? req?.body?.refreshToken
 
     console.log('Token de cookie (últimos 10):', fromCookie?.slice(-10))
     console.log('Token de body (últimos 10):', fromBody?.slice(-10))
