@@ -4,6 +4,7 @@ import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { CreateTermDto } from './dto/create-term.dto';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @Controller('schools')
 @UseGuards(JwtAuthGuard)
@@ -13,40 +14,40 @@ export class SchoolsController {
     // --------- Schools ---------------
 
     @Post()
-    create(@Req() req: any, @Body() dto: CreateSchoolDto) {
-        const teacher = req.user as { id: string }
-        return this.schoolsService.create(teacher.id, dto)
+    create(@CurrentUser() user: { id: string }, @Body() dto: CreateSchoolDto) {
+        // const teacher = req.user as { id: string }
+        return this.schoolsService.create(user.id, dto)
     }
 
     @Get()
-    findAll(@Req() req: any) {
-        const teacher = req.user as { id: string }
-        return this.schoolsService.findAll(teacher.id)
+    findAll(@CurrentUser() user: { id: string }) {
+        // const teacher = req.user as { id: string }
+        return this.schoolsService.findAll(user.id)
     }
 
     @Get(':id')
-    findOne(@Req() req: any, @Param('id') schoolId: string) {
-        const teacher = req.user as { id: string }
-        return this.schoolsService.findOne(teacher.id, schoolId)
+    findOne(@CurrentUser() user: { id: string }, @Param('id') schoolId: string) {
+        // const teacher = req.user as { id: string }
+        return this.schoolsService.findOne(user.id, schoolId)
     }
 
     @Patch(':id')
     update(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param('id') schoolId: string,
         @Body() dto: UpdateSchoolDto,
     ) {
-        const teacher = req.user as { id: string }
-        return this.schoolsService.update(teacher.id, schoolId, dto)
+        // const teacher = req.user as { id: string }
+        return this.schoolsService.update(user.id, schoolId, dto)
     }
 
     @Delete(':id')
     remove(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param('id') schoolId: string
     ) {
-        const teacher = req.user as { id: string }
-        return this.schoolsService.remove(teacher.id, schoolId)
+        // const teacher = req.user as { id: string }
+        return this.schoolsService.remove(user.id, schoolId)
     }
 
 
@@ -54,23 +55,21 @@ export class SchoolsController {
 
     @Post(':id/terms')
     createTerm(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param('id') schoolId: string,
         @Body() dto: CreateTermDto
     ) {
-        const teacher = req.user as { id: string }
-        console.log('req.user: ', req.user)
-        console.log('SchoolId del param: ', schoolId)
-        return this.schoolsService.createTerm(teacher.id, schoolId, dto)
+        // const teacher = req.user as { id: string }
+        return this.schoolsService.createTerm(user.id, schoolId, dto)
     }
 
     @Get(':id/terms')
     findTerms(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param('id') schoolId: string
     ) {
-        const teacher = req.user as { id: string }
-        return this.schoolsService.findTerms(teacher.id, schoolId)
+        // const teacher = req.user as { id: string }
+        return this.schoolsService.findTerms(user.id, schoolId)
     }
 
     

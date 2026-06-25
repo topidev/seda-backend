@@ -14,6 +14,8 @@ import { GroupsService } from './groups.service'
 import { CreateGroupDto } from './dto/create-group.dto'
 import { UpdateGroupDto } from './dto/update-group.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { AcademicTermGuard } from 'src/common/guards/academic-term.guard'
+import { CurrentUser } from 'src/common/decorators/current-user.decorator'
 
 @Controller('groups')
 @UseGuards(JwtAuthGuard)
@@ -21,53 +23,55 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Post()
-  create(@Req() req: any, @Body() dto: CreateGroupDto) {
-    return this.groupsService.create(req.user.id, dto)
+  @UseGuards(JwtAuthGuard, AcademicTermGuard)
+  create(@CurrentUser() user: { id: string }, @Body() dto: CreateGroupDto) {
+    return this.groupsService.create(user.id, dto)
   }
 
   @Get()
   findAll(
-    @Req() req: any,
+    @CurrentUser() user: { id: string },
     @Query('schoolId') schoolId: string,
     @Query('academicTermId') academicTermId: string,
   ) {
-    return this.groupsService.findAll(req.user.id, schoolId, academicTermId)
+    return this.groupsService.findAll(user.id, schoolId, academicTermId)
   }
 
   @Get(':id')
   findOne(
-    @Req() req: any,
+    @CurrentUser() user: { id: string },
     @Param('id') groupId: string,
     @Query('academicTermId') academicTermId: string,
   ) {
-    return this.groupsService.findOne(req.user.id, groupId, academicTermId)
+    return this.groupsService.findOne(user.id, groupId, academicTermId)
   }
 
   @Patch(':id')
   update(
-    @Req() req: any,
+    @CurrentUser() user: { id: string },
     @Param('id') groupId: string,
     @Body() dto: UpdateGroupDto,
   ) {
-    return this.groupsService.update(req.user.id, groupId, dto)
+    return this.groupsService.update(user.id, groupId, dto)
   }
 
   @Delete(':id')
-  remove(@Req() req: any, @Param('id') groupId: string) {
-    return this.groupsService.remove(req.user.id, groupId)
+  remove(@CurrentUser() user: { id: string }, @Param('id') groupId: string) {
+    return this.groupsService.remove(user.id, groupId)
   }
 
   @Post(':id/subjects')
   assignSubject(
-    @Req() req: any,
+    @CurrentUser() user: { id: string },
     @Param('id') groupId: string,
     @Body() body: { subjectId: string; academicTermId: string },
   ) {
     return this.groupsService.assignSubject(
-      req.user.id,
+      user.id,
       groupId,
       body.subjectId,
       body.academicTermId,
     )
   }
+
 }

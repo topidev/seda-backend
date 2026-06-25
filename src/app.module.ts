@@ -10,9 +10,17 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { GroupsModule } from './groups/groups.module';
 import { StudentsModule } from './students/students.module';
 import { ClassroomModule } from './classroom/classroom.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // Un minuto de gap
+        limit: 100 // 100 intentos por el gap de un min
+      }
+    ]),
     ConfigModule.forRoot({
       isGlobal: true,   // disponible en toda la app sin importarlo
       validate,         // valida las variables al iniciar
@@ -26,6 +34,12 @@ import { ClassroomModule } from './classroom/classroom.module';
     ClassroomModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard
+    }
+  ],
 })
 export class AppModule {}

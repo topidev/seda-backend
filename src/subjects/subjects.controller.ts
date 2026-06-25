@@ -4,6 +4,7 @@ import { SubjectsService } from './subjects.service';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { CreateGradeCategoryDto } from './dto/create-grade-category.dto';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @Controller('subjects')
 @UseGuards(JwtAuthGuard)
@@ -11,58 +12,58 @@ export class SubjectsController {
     constructor(private readonly subjectsService: SubjectsService) {}
 
     @Post()
-    create(@Req() req: any, @Body() dto: CreateSubjectDto) {
-        return this.subjectsService.create(req.user.id, dto)
+    create(@CurrentUser() user: { id: string }, @Body() dto: CreateSubjectDto) {
+        return this.subjectsService.create(user.id, dto)
     }
 
     @Get(':id')
-    findOne(@Req() req: any, @Param('id') subjectId: string) {
-        return this.subjectsService.findOne(req.user.id, subjectId)
+    findOne(@CurrentUser() user: { id: string }, @Param('id') subjectId: string) {
+        return this.subjectsService.findOne(user.id, subjectId)
     }
 
     @Get()
-    findAll(@Req() req: any) {
-        return this.subjectsService.findAll(req.user.id)
+    findAll(@CurrentUser() user: { id: string }) {
+        return this.subjectsService.findAll(user.id)
     }
 
     @Patch(':id')
     update(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param('id') subjectId: string,
         @Body() dto: UpdateSubjectDto,
     ) {
-        return this.subjectsService.update(req.user.id, subjectId, dto)
+        return this.subjectsService.update(user.id, subjectId, dto)
     }
 
     @Delete(':id')
-    remove(@Req() req: any, @Param('id') subjectId: string) {
-        return this.subjectsService.remove(req.user.id, subjectId)
+    remove(@CurrentUser() user: { id: string }, @Param('id') subjectId: string) {
+        return this.subjectsService.remove(user.id, subjectId)
     }
 
     // --------> Categorias
 
     @Post(':id/categories')
     createCategory(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param('id') subjectId: string,
         @Body() dto: CreateGradeCategoryDto,
     ) {
-        return this.subjectsService.createCategory(req.user.id, subjectId, dto)
+        return this.subjectsService.createCategory(user.id, subjectId, dto)
     }
 
     @Delete(':id/categories/:category')
     removeCategory(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param('categoryId') categoryId: string,
     ) {
-        return this.subjectsService.removeCategory(req.user.id, categoryId)
+        return this.subjectsService.removeCategory(user.id, categoryId)
     }
 
     // ------------> Grupos
 
     @Post(':id/assing-groups')
     assignGroups(
-        @Req() req: any,
+        @CurrentUser() user: { id: string },
         @Param(':id') subjectId: string,
         @Body() body: {
             groupIds: string[];
@@ -70,7 +71,7 @@ export class SubjectsController {
         },
     ) {
         return this.subjectsService.assignGroups(
-            req.user.id,
+            user.id,
             subjectId,
             body.groupIds,
             body.academicTermId,
