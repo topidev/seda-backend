@@ -5,6 +5,7 @@ import { AuthService } from './auth.service'
 import { GoogleAuthGuard } from './guards/google-auth.guard'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard'
+import { CurrentUser } from 'src/common/decorators/current-user.decorator'
 
 @Controller('auth')
 export class AuthController {
@@ -59,21 +60,21 @@ export class AuthController {
   // Ruta protegida: solo accesible con JWT válido
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  getMe(@Req() req: Request) {
-    const teacher = req.user as {
-      id: string
-      email: string
-      name: string
-      lastName: string
-      photo: string
-      role: string
-      active: boolean
-      createdAt: Date
-      refreshToken: string
-    }
+  getMe(@CurrentUser() user: any) {
+    // const teacher = req.user as {
+    //   id: string
+    //   email: string
+    //   name: string
+    //   lastName: string
+    //   photo: string
+    //   role: string
+    //   active: boolean
+    //   createdAt: Date
+    //   refreshToken: string
+    // }
 
     // Nunca enviamos el refreshToken al cliente
-    const { refreshToken, ...result } = teacher
+    const { refreshToken, ...result } = user
     return result
   }
 
