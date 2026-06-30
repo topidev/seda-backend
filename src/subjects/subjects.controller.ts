@@ -51,7 +51,7 @@ export class SubjectsController {
         return this.subjectsService.createCategory(user.id, subjectId, dto)
     }
 
-    @Delete(':id/categories/:category')
+    @Delete(':id/categories/:categoryId')
     removeCategory(
         @CurrentUser() user: { id: string },
         @Param('categoryId') categoryId: string,
