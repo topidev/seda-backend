@@ -118,9 +118,20 @@ export class SubjectsService {
         id: categoryId,
         subject: { teacherId },
       },
+      include: {
+        _count: {
+          select: { activities: true },
+        },
+      },
     })
 
     if (!category) throw new NotFoundException('Categoría no encontrada')
+
+    if (category._count.activities > 0) {
+      throw new BadRequestException(
+        `No puedes eliminar esta categoría porque tiene ${category._count.activities} actividad(es) asociada(s). Elimina primero las actividades.`,
+      )
+    }
 
     return this.prisma.gradeCategory.delete({
       where: { id: categoryId },
