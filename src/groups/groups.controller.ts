@@ -74,4 +74,21 @@ export class GroupsController {
     )
   }
 
+  @Delete(':id/subjects/:subjectTermGroupId')
+  removeSubject(
+    @CurrentUser() user: { id: string },
+    @Param('id') groupId: string,
+    @Param('subjectTermGroupId') subjectTermGroupId: string,
+  ) {
+    return this.groupsService.removeSubjectFromGroup(user.id, groupId, subjectTermGroupId)
+  }
+
+  @Delete(':id/students/:studentGroupTermId')
+  removeStudent(
+    @CurrentUser() user: { id: string },
+    @Param('id') groupId: string,
+    @Param('studentGroupTermId') studentGroupTermId: string,
+  ) {
+    return this.groupsService.removeStudentFromGroup(user.id, groupId, studentGroupTermId)
+  }
 }

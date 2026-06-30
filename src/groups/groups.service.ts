@@ -194,4 +194,46 @@ export class GroupsService {
       create: { subjectId, groupId, academicTermId },
     })
   }
+
+  async removeSubjectFromGroup(
+    teacherId: string,
+    groupId: string,
+    subjectTermGroupId: string,
+  ) {
+    const stg = await this.prisma.subjectTermGroup.findFirst({
+      where: {
+        id: subjectTermGroupId,
+        groupId,
+        subject: { teacherId },
+      },
+    })
+
+    if (!stg) throw new NotFoundException('Asignación no encontrada')
+
+    return this.prisma.subjectTermGroup.update({
+      where: { id: subjectTermGroupId },
+      data: { active: false },
+    })
+  }
+
+  async removeStudentFromGroup(
+    teacherId: string,
+    groupId: string,
+    studentGroupTermId: string,
+  ) {
+    const sgt = await this.prisma.studentGroupTerm.findFirst({
+      where: {
+        id: studentGroupTermId,
+        groupId,
+        student: { teacherId },
+      },
+    })
+
+    if (!sgt) throw new NotFoundException('Asignación no encontrada')
+
+    return this.prisma.studentGroupTerm.update({
+      where: { id: studentGroupTermId },
+      data: { active: false },
+    })
+  }
 }
