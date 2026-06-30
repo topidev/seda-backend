@@ -76,4 +76,21 @@ export class StudentsController {
       body.academicTermId,
     )
   }
+
+  @Get(':id/subjects/:subjectTermGroupId/summary')
+  getSubjectSummary(
+    @CurrentUser() user: { id: string },
+    @Param('id') studentId: string,
+    @Param('subjectTermGroupId') subjectTermGroupId: string,
+    @Query('periodId') periodId: string,
+  ) {
+    return this.studentsService.getSubjectSummary(
+      user.id,
+      studentId,
+      subjectTermGroupId,
+      periodId,
+    )
+  }
+
+
 }

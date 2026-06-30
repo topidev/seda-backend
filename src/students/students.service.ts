@@ -172,4 +172,102 @@ export class StudentsService {
       create: { studentId, groupId, academicTermId },
     })
   }
+
+  async getSubjectSummary(
+    teacherId: string,
+    studentId: string,
+    subjectTermGroupId: string,
+    periodId: string,
+  ) {
+    // Verifica que el alumno pertenece al maestro
+    const student = await this.prisma.student.findFirst({
+      where: { id: studentId, teacherId, deletedAt: null },
+    })
+
+    if (!student) throw new NotFoundException('Alumno no encontrado')
+
+    // Verifica que el SubjectTermGroup pertenece al maestro
+    const stg = await this.prisma.subjectTermGroup.findFirst({
+      where: {
+        id: subjectTermGroupId,
+        subject: { teacherId },
+      },
+      include: { subject: true },
+    })
+
+    if (!stg) throw new NotFoundException('Materia no encontrada')
+
+    // Calificación bimestral
+    const finalGrade = await this.prisma.finalGrade.findUnique({
+      where: {
+        studentId_subjectTermGroupId_periodId: {
+          studentId,
+          subjectTermGroupId,
+          periodId,
+        },
+      },
+    })
+
+    // Actividades del bimestre con la calificación del alumno
+    const activities = await this.prisma.activity.findMany({
+      where: {
+        subjectTermGroupId,
+        periodId,
+        deletedAt: null,
+      },
+      include: {
+        category: true,
+        grades: {
+          where: { studentId },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    const activitiesWithGrade = activities.map((a) => ({
+      id: a.id,
+      title: a.title,
+      categoryName: a.category.name,
+      categoryPercentage: a.category.percentage,
+      maxScore: a.maxScore,
+      score: a.grades[0]?.score ?? null,
+      didNotSubmit: a.grades[0]?.didNotSubmit ?? false,
+    }))
+
+    // Asistencias del bimestre
+    const period = await this.prisma.period.findUnique({
+      where: { id: periodId },
+    })
+
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        studentId,
+        subjectTermGroupId,
+        date: {
+          gte: period?.startDate,
+          lte: period?.endDate,
+        },
+      },
+    })
+
+    const attendanceSummary = {
+      present: attendances.filter((a) => a.status === 'PRESENT').length,
+      absent: attendances.filter((a) => a.status === 'ABSENT').length,
+      late: attendances.filter((a) => a.status === 'LATE').length,
+      excused: attendances.filter((a) => a.status === 'EXCUSED').length,
+    }
+
+    return {
+      subjectName: stg.subject.name,
+      finalGrade: finalGrade
+        ? {
+            calculatedScore: finalGrade.calculatedScore,
+            finalScore: finalGrade.finalScore,
+          }
+        : null,
+      activities: activitiesWithGrade,
+      attendance: attendanceSummary,
+    }
+  }
+
 }
