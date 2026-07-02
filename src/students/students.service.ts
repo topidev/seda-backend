@@ -248,6 +248,7 @@ export class StudentsService {
           lte: period?.endDate,
         },
       },
+      orderBy: { date: 'asc'}
     })
 
     const attendanceSummary = {
@@ -259,6 +260,10 @@ export class StudentsService {
 
     return {
       subjectName: stg.subject.name,
+      periodDates: {
+        startDate: period?.startDate,
+        endDate: period?.endDate
+      },
       finalGrade: finalGrade
         ? {
             calculatedScore: finalGrade.calculatedScore,
@@ -266,7 +271,10 @@ export class StudentsService {
           }
         : null,
       activities: activitiesWithGrade,
-      attendance: attendanceSummary,
+      attendance: attendances.map(a => ({
+        date: a.date,
+        status: a.status
+      })),
     }
   }
 
