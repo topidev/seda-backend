@@ -144,4 +144,19 @@ export class ClassroomController {
             subjectTermGroupId,
         )
     }
+
+    @Patch(':id/periods/:periodId/toggle-close')
+    togglePeriodClose(
+        @CurrentUser() user: { id: string },
+        @Param('id') subjectTermGroupId: string,
+        @Param('perdiodId') periodId: string,
+        @Body() body: { closed: boolean }
+    ) {
+        return this.classroomService.togglePeriodClose(
+            user.id,
+            subjectTermGroupId,
+            periodId,
+            body.closed,
+        )
+    }
 }

@@ -443,4 +443,25 @@ export class ClassroomService {
 				recentClasses: classes,
 		}
 	}
+
+    async togglePeriodClose(
+        teacherId: string,
+        subjecTermGroupId: string,
+        periodId: string,
+        closed: boolean,
+    ) {
+        await this.findOneClass(teacherId, subjecTermGroupId)
+
+        // cierra o abre todas las calificaciones del bimestre de esta materia
+        await this.prisma.finalGrade.updateMany({
+            where: {
+                subjecTermGroupId,
+                periodId, 
+            },
+            data: { closed }
+        })
+
+        return { success: true, closed }
+
+    }
 }
