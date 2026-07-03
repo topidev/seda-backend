@@ -446,16 +446,16 @@ export class ClassroomService {
 
     async togglePeriodClose(
         teacherId: string,
-        subjecTermGroupId: string,
+        subjectTermGroupId: string,
         periodId: string,
         closed: boolean,
     ) {
-        await this.findOneClass(teacherId, subjecTermGroupId)
+        await this.findOneClass(teacherId, subjectTermGroupId)
 
         // cierra o abre todas las calificaciones del bimestre de esta materia
         await this.prisma.finalGrade.updateMany({
             where: {
-                subjecTermGroupId,
+                subjectTermGroupId,
                 periodId, 
             },
             data: { closed }
