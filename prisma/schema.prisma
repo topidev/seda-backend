@@ -29,6 +29,7 @@ model Teacher {
   subjects         Subject[]
   students         Student[]
   sharedLinks      SharedLink[]
+  reports Report[]
 
   @@map("teachers")
 }
@@ -183,6 +184,7 @@ model SubjectTermGroup {
   activities  Activity[]
   finalGrades FinalGrade[]
   attendances Attendance[]
+  reports Report[]
 
   @@unique([subjectId, groupId, academicTermId])
   @@map("subject_term_groups")
@@ -225,6 +227,7 @@ model Student {
   grades        Grade[]
   finalGrades   FinalGrade[]
   attendances   Attendance[]
+  reports Report[]
 
   @@map("students")
 }
@@ -367,4 +370,27 @@ model SharedLink {
 enum SharedLinkType {
   GRADES
   ATTENDANCE
+}
+
+
+// ─────────────────────────────────────────
+// STUDENTS' REPORTS
+// ─────────────────────────────────────────
+
+
+model Report {
+  id                 String    @id @default(cuid())
+  studentId          String
+  teacherId          String
+  subjectTermGroupId String?
+  reason             String
+  date               DateTime  @db.Date
+  notifyTutor        Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+
+  student          Student           @relation(fields: [studentId], references: [id])
+  teacher          Teacher           @relation(fields: [teacherId], references: [id])
+  subjectTermGroup SubjectTermGroup? @relation(fields: [subjectTermGroupId], references: [id])
+
+  @@map("reports")
 }
