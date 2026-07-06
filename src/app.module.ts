@@ -12,6 +12,7 @@ import { StudentsModule } from './students/students.module';
 import { ClassroomModule } from './classroom/classroom.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { APP_GUARD } from '@nestjs/core';
     GroupsModule,
     StudentsModule,
     ClassroomModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
