@@ -211,14 +211,17 @@ export class StudentsService {
     // Actividades del bimestre con la calificación del alumno
     const activities = await this.prisma.activity.findMany({
       where: {
-        subjectTermGroupId,
+        subjectId: stg.subjectId,
         periodId,
         deletedAt: null,
       },
       include: {
         category: true,
         grades: {
-          where: { studentId },
+          where: { 
+            studentId,
+            subjectTermGroupId
+          },
         },
       },
       orderBy: { createdAt: 'asc' },

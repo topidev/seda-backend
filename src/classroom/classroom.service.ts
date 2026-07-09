@@ -11,9 +11,9 @@ export class ClassroomService {
     async findMyClasses(teacherId: string) {
         return this.prisma.subjectTermGroup.findMany({
             where: {
-                active:true,
-                subject: { teacherId },
-                academicTerm: { active:true }
+							active:true,
+							subject: { teacherId },
+							academicTerm: { active:true }
             },
             include: {
                 subject: true,
@@ -31,7 +31,7 @@ export class ClassroomService {
                     }
                 },
                 _count: {
-                    select: { activities: true }
+                    select: { reports: true }
                 }
             },
             orderBy: [
@@ -77,72 +77,83 @@ export class ClassroomService {
     }
 
     // ------> Actividades
-    async findActivitiesByPeriod(teacherId: string, subjectTermGroupId: string, periodId: string) {
-        await this.findOneClass(teacherId, subjectTermGroupId)
+    async findActivitiesByPeriod(
+			teacherId: string, 
+			subjectTermGroupId: string, 
+			periodId: string
+    ) {
+        const stg = await this.findOneClass(teacherId, subjectTermGroupId)
 
         return this.prisma.activity.findMany({
             where: {
-                subjectTermGroupId,
-                periodId,
-                deletedAt:null
+							subjectId: stg.subjectId,
+							periodId,
+							deletedAt: null
             },
             include: {
                 category: true,
-                grades: true
+                grades: {
+                    where: { subjectTermGroupId },
+                }
             },
             orderBy: { createdAt: 'asc' }
         })
     }
 
     async createActivity(
-        teacherId: string,
-        subjectTermGroupId: string,
-        periodId: string,
-        dto: CreateActivityDto
+			teacherId: string,
+			subjectTermGroupId: string,
+			periodId: string,
+			dto: CreateActivityDto
     ) {
-        await this.findOneClass(teacherId, subjectTermGroupId)
+        const stg = await this.findOneClass(teacherId, subjectTermGroupId)
 
         return this.prisma.activity.create({
-            data: {
-                subjectTermGroupId,
-                periodId,
-                categoryId: dto.categoryId,
-                title: dto.title,
-                description: dto.description,
-                dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-                maxScore: dto.maxScore ?? 10
-            },
-            include: { category: true }
+					data: {
+						subjectId: stg.subjectId,
+						periodId,
+						categoryId: dto.categoryId,
+						title: dto.title,
+						description: dto.description,
+						dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+						maxScore: dto.maxScore ?? 10
+					},
+					include: { category: true }
         })
     }
 
     async deleteActivity(teacherId: string, activityId: string) {
-        const activity = await this.prisma.activity.findFirst({
-            where: {
-                id: activityId,
-                deletedAt: null,
-                subjectTermGroup: { subject: { teacherId } }
-            },
-        })
-        if (!activity) throw new NotFoundException('Actividad no encontrada')
+			const activity = await this.prisma.activity.findFirst({
+				where: {
+					id: activityId,
+					deletedAt: null,
+					subject: { teacherId }
+				},
+			})
+			if (!activity) throw new NotFoundException('Actividad no encontrada')
         
-        return this.prisma.activity.update({
-            where: {
-                id: activityId
-            },
-            data: { deletedAt: new Date() }
-        })
+			return this.prisma.activity.update({
+				where: {
+					id: activityId
+				},
+				data: { deletedAt: new Date() }
+			})
     }
 
     // ----------> Ponderación
-    async gradeActivity(teacherId: string, activityId: string, dto: GradeActivityDto) {
-        const activity = await this.prisma.activity.findFirst({
-            where: {
-                id: activityId,
-                deletedAt: null,
-                subjectTermGroup: { subject: { teacherId } }
-            }
-        })
+    async gradeActivity(
+			teacherId: string, 
+			activityId: string, 
+			subjectTermGroupId: string,
+			dto: GradeActivityDto
+		) {
+			const activity = await this.prisma.activity.findFirst({
+				where: {
+					id: activityId,
+					deletedAt: null,
+					subject: { teacherId }
+				}
+			})
 
         if (!activity) throw new NotFoundException('Actividad no encontrada')
 
@@ -150,9 +161,10 @@ export class ClassroomService {
             dto.grades.map(grade => 
                 this.prisma.grade.upsert({
                     where: {
-                        activityId_studentId: {
-                            activityId,
-                            studentId: grade.studentId
+                        activityId_studentId_subjectTermGroupId: {
+													activityId,
+													studentId: grade.studentId,
+													subjectTermGroupId,
                         }
                     },
                     update: {
@@ -164,6 +176,7 @@ export class ClassroomService {
                     create: {
                         activityId,
                         studentId: grade.studentId,
+												subjectTermGroupId,
                         score: grade.didNotSubmit ? 0 : grade.score,
                         didNotSubmit: grade.didNotSubmit ?? false
                     }
@@ -171,104 +184,112 @@ export class ClassroomService {
             )
         )
 
-        await this.recalculatePeriodGrades(activityId)
+        await this.recalculatePeriodGrades(activityId, subjectTermGroupId)
         return { success: true }
     }
 
     // -----> Calculo Bimestral
-    private async recalculatePeriodGrades(activityId: string) {
-        const activity = await this.prisma.activity.findUnique({
-            where: {
-                id: activityId
-            },
-            include: {
-                subjectTermGroup: {
-                    include: {
-                        subject: {
-                            include: { gradeCategories: true } 
-                        },
-                        group: {
-                            include: {
-                                studentGroupTerms: {
-                                    where: { active: true },
-                                    select: { studentId: true }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        })
+    private async recalculatePeriodGrades(
+			activityId: string, 
+			subjectTermGroupId: string
+		) {
+			const activity = await this.prisma.activity.findUnique({
+				where: {
+					id: activityId
+				},
+				include: {
+					subject: {
+						include: { gradeCategories: true } 
+					},
+				}
+			})
 
-				if (!activity) return
+			if (!activity) return
 
-				const { subjectTermGroupId, periodId, subjectTermGroup } = activity
-				const studentIds = subjectTermGroup.group.studentGroupTerms.map(
-					s => s.studentId
-				)
-				const categories = subjectTermGroup.subject.gradeCategories
-
-				await Promise.all( // Calcular calificacion de cada alumno
-					studentIds.map(async studentId => {
-						const activities = await this.prisma.activity.findMany({
-							where: { 
-								subjectTermGroupId, 
-								periodId, 
-								deletedAt: null 
-							},
-							include: {
-								grades: {
-									where: { studentId }
-								}
-							},
-						})
-						
-						let calculatedScore = 0
-
-						for (const category of categories) {
-							const categoryActivites = activities.filter(
-								a => a.categoryId === category.id
-							)
-
-							if (categoryActivites.length === 0) continue
-
-							const categoryScores = categoryActivites.map(a => {
-								const grade = a.grades[0]
-								if (!grade || grade.score === null) return null
-
-								return (grade.score / a.maxScore) * 10
-							})
-
-							const validScores = categoryScores.filter(s => s !== null) as number[]
-
-							if(validScores.length === 0) continue
-
-							const categoryAvg = validScores.reduce((sum, s) => sum + s, 0) / validScores.length
-
-							calculatedScore += categoryAvg * (category.percentage / 100)
+			const stg = await this.prisma.subjectTermGroup.findUnique({
+				where: { id: subjectTermGroupId },
+				include: {
+					group: {
+						include: {
+							studentGroupTerms: {
+								where: { active: true },
+								select: { studentId: true }
+							}
 						}
+					}
+				}
+			})
 
-						// Actualizar calificacion bimestral
-						await this.prisma.finalGrade.upsert({
-							where: {
-								studentId_subjectTermGroupId_periodId: {
-									studentId,
-									subjectTermGroupId,
-									periodId
-								}
+			if (!stg) return
+
+			const studentIds = stg.group.studentGroupTerms.map(
+				s => s.studentId
+			)
+			const categories = activity.subject.gradeCategories
+			const periodId = activity.periodId
+
+			await Promise.all( // Calcular calificacion de cada alumno
+				studentIds.map(async studentId => {
+					const activities = await this.prisma.activity.findMany({
+						where: { 
+							subjectId: activity.subjectId, 
+							periodId, 
+							deletedAt: null 
+						},
+						include: {
+							grades: {
+								where: { studentId, subjectTermGroupId  }
 							},
-							update: {
-								calculatedScore: Math.round(calculatedScore * 10) / 10
-							},
-							create: {
+							category: true
+						},
+					})
+					
+					let calculatedScore = 0
+
+					for (const category of categories) {
+						const categoryActivites = activities.filter(
+							a => a.categoryId === category.id
+						)
+
+						if (categoryActivites.length === 0) continue
+
+						const categoryScores = categoryActivites.map(a => {
+							const grade = a.grades[0]
+							if (!grade || grade.score === null) return null
+							return (grade.score / a.maxScore) * 10
+						})
+
+						const validScores = categoryScores.filter(s => s !== null) as number[]
+
+						if(validScores.length === 0) continue
+
+						const categoryAvg = 
+							validScores.reduce((sum, s) => sum + s, 0) / validScores.length
+
+						calculatedScore += categoryAvg * (category.percentage / 100)
+					}
+
+					// Actualizar calificacion bimestral
+					await this.prisma.finalGrade.upsert({
+						where: {
+							studentId_subjectTermGroupId_periodId: {
 								studentId,
 								subjectTermGroupId,
-								periodId,
-								calculatedScore: Math.round(calculatedScore * 10) / 10
+								periodId
 							}
-						})
+						},
+						update: {
+							calculatedScore: Math.round(calculatedScore * 10) / 10
+						},
+						create: {
+							studentId,
+							subjectTermGroupId,
+							periodId,
+							calculatedScore: Math.round(calculatedScore * 10) / 10
+						}
 					})
-				)
+				})
+			)
     }
 
     // --------> Calificaciones Bimestrales
@@ -296,23 +317,23 @@ export class ClassroomService {
         finalScore: number,
         overrideReason?: string
     ){
-        const finalGrade = await this.prisma.finalGrade.findFirst({
-            where: {
-                id: finalGradeId,
-                subjectTermGroup: { subject: { teacherId } }
-            },
-        })
+			const finalGrade = await this.prisma.finalGrade.findFirst({
+				where: {
+					id: finalGradeId,
+					subjectTermGroup: { subject: { teacherId } }
+				},
+			})
 
-        if (!finalGrade) throw new NotFoundException('Calificación no encontrada')
-        
-        return this.prisma.finalGrade.update({
-            where: { id: finalGradeId },
-            data: {
-                finalScore,
-                overrideReason,
-                overrideAt: new Date()
-            }
-        })
+			if (!finalGrade) throw new NotFoundException('Calificación no encontrada')
+			
+			return this.prisma.finalGrade.update({
+				where: { id: finalGradeId },
+				data: {
+					finalScore,
+					overrideReason,
+					overrideAt: new Date()
+				}
+			})
     }
 
     // ----------> Asistencia
@@ -424,10 +445,7 @@ export class ClassroomService {
 				this.prisma.activity.count({
 					where: {
 						deletedAt: null,
-						subjectTermGroup: {
-							subject: { teacherId },
-							academicTerm: { active: true },
-						},
+                        subject: { teacherId },
 						grades: {
 							none: {},
 						},

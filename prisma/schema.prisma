@@ -163,6 +163,7 @@ model Subject {
   teacher           Teacher            @relation(fields: [teacherId], references: [id])
   subjectTermGroups SubjectTermGroup[]
   gradeCategories   GradeCategory[]
+  activities        Activity[]
 
   @@map("subjects")
 }
@@ -181,10 +182,10 @@ model SubjectTermGroup {
   group        Group        @relation(fields: [groupId], references: [id])
   academicTerm AcademicTerm @relation(fields: [academicTermId], references: [id])
 
-  activities  Activity[]
   finalGrades FinalGrade[]
   attendances Attendance[]
   reports Report[]
+  grades  Grade[]
 
   @@unique([subjectId, groupId, academicTermId])
   @@map("subject_term_groups")
@@ -255,7 +256,7 @@ model StudentGroupTerm {
 
 model Activity {
   id                 String    @id @default(cuid())
-  subjectTermGroupId String
+  subjectId          String
   categoryId         String
   periodId           String
   title              String
@@ -265,7 +266,7 @@ model Activity {
   deletedAt          DateTime?
   createdAt          DateTime  @default(now())
 
-  subjectTermGroup SubjectTermGroup @relation(fields: [subjectTermGroupId], references: [id])
+  subject         Subject          @relation(fields: [subjectId], references: [id])
   category         GradeCategory   @relation(fields: [categoryId], references: [id])
   period           Period          @relation(fields: [periodId], references: [id])
   grades           Grade[]
@@ -277,6 +278,7 @@ model Grade {
   id            String    @id @default(cuid())
   activityId    String
   studentId     String
+  subjectTermGroupId String
   score         Float?    // null = aún no calificado
   didNotSubmit  Boolean   @default(false)
   // Override manual
@@ -289,10 +291,11 @@ model Grade {
   version       Int       @default(1)
   updatedAt     DateTime  @updatedAt
 
-  activity Activity @relation(fields: [activityId], references: [id])
-  student  Student  @relation(fields: [studentId], references: [id])
+  activity          Activity          @relation(fields: [activityId], references: [id])
+  student           Student           @relation(fields: [studentId], references: [id])
+  subjectTermGroup  SubjectTermGroup  @relation(fields: [subjectTermGroupId], references: [id])
 
-  @@unique([activityId, studentId])
+  @@unique([activityId, studentId, subjectTermGroupId])
   @@map("grades")
 }
 

@@ -70,9 +70,14 @@ export class ClassroomController {
     gradeActivity(
         @CurrentUser() user: { id: string },
         @Param('activityId') activityId: string,
-        @Body() dto: GradeActivityDto
+        @Body() dto: GradeActivityDto & { subjectTermGroupId: string }
     ) {
-        return this.classroomService.gradeActivity(user.id, activityId, dto)
+        return this.classroomService.gradeActivity(
+            user.id,
+            activityId,
+            dto.subjectTermGroupId,
+            dto,
+        )
     }
 
     @Get(':id/periods/:periodId/grades')
