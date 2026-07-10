@@ -190,106 +190,137 @@ export class ClassroomService {
 
     // -----> Calculo Bimestral
     private async recalculatePeriodGrades(
-			activityId: string, 
-			subjectTermGroupId: string
-		) {
-			const activity = await this.prisma.activity.findUnique({
-				where: {
-					id: activityId
-				},
-				include: {
-					subject: {
-						include: { gradeCategories: true } 
-					},
-				}
-			})
+        activityId: string,
+        subjectTermGroupId: string,
+    ) {
+        const activity = await this.prisma.activity.findUnique({
+            where: { id: activityId },
+            include: {
+            subject: { include: { gradeCategories: true } },
+            },
+        })
 
-			if (!activity) return
+        if (!activity) return
 
-			const stg = await this.prisma.subjectTermGroup.findUnique({
-				where: { id: subjectTermGroupId },
-				include: {
-					group: {
-						include: {
-							studentGroupTerms: {
-								where: { active: true },
-								select: { studentId: true }
-							}
-						}
-					}
-				}
-			})
+        const stg = await this.prisma.subjectTermGroup.findUnique({
+            where: { id: subjectTermGroupId },
+            include: {
+            group: {
+                include: {
+                studentGroupTerms: {
+                    where: { active: true },
+                    select: { studentId: true },
+                },
+                },
+            },
+            },
+        })
 
-			if (!stg) return
+        if (!stg) return
 
-			const studentIds = stg.group.studentGroupTerms.map(
-				s => s.studentId
-			)
-			const categories = activity.subject.gradeCategories
-			const periodId = activity.periodId
+        const studentIds = stg.group.studentGroupTerms.map(s => s.studentId)
+        const categories = activity.subject.gradeCategories
+        const periodId = activity.periodId
 
-			await Promise.all( // Calcular calificacion de cada alumno
-				studentIds.map(async studentId => {
-					const activities = await this.prisma.activity.findMany({
-						where: { 
-							subjectId: activity.subjectId, 
-							periodId, 
-							deletedAt: null 
-						},
-						include: {
-							grades: {
-								where: { studentId, subjectTermGroupId  }
-							},
-							category: true
-						},
-					})
-					
-					let calculatedScore = 0
+        // Obtiene el periodo para filtrar asistencias por fecha
+        const period = await this.prisma.period.findUnique({
+            where: { id: periodId },
+        })
 
-					for (const category of categories) {
-						const categoryActivites = activities.filter(
-							a => a.categoryId === category.id
-						)
+        await Promise.all(
+            studentIds.map(async studentId => {
+            const activities = await this.prisma.activity.findMany({
+                where: {
+                subjectId: activity.subjectId,
+                periodId,
+                deletedAt: null,
+                },
+                include: {
+                grades: {
+                    where: { studentId, subjectTermGroupId },
+                },
+                category: true,
+                },
+            })
 
-						if (categoryActivites.length === 0) continue
+            // Asistencias del alumno en este bimestre
+            const attendances = period ? await this.prisma.attendance.findMany({
+                where: {
+                studentId,
+                subjectTermGroupId,
+                date: {
+                    gte: period.startDate,
+                    lte: period.endDate,
+                },
+                },
+            }) : []
 
-						const categoryScores = categoryActivites.map(a => {
-							const grade = a.grades[0]
-							if (!grade || grade.score === null) return null
-							return (grade.score / a.maxScore) * 10
-						})
+            const totalClasses = attendances.length
+            const absents = attendances.filter(a => a.status === 'ABSENT').length
+            const lates = attendances.filter(a => a.status === 'LATE').length
+            // 3 tardanzas = 1 falta, justificados no son faltas
+            const equivalentAbsences = absents + Math.floor(lates / 3)
+            const effectivePresences = totalClasses - equivalentAbsences
+            const attendanceScore = totalClasses > 0
+                ? Math.min((effectivePresences / totalClasses) * 10, 10)
+                : null
 
-						const validScores = categoryScores.filter(s => s !== null) as number[]
+            let calculatedScore = 0
 
-						if(validScores.length === 0) continue
+            for (const category of categories) {
+                const isAttendanceCategory =
+                category.name.toLowerCase().trim() === 'asistencia'
 
-						const categoryAvg = 
-							validScores.reduce((sum, s) => sum + s, 0) / validScores.length
+                if (isAttendanceCategory) {
+                // Usa el score calculado de asistencias
+                if (attendanceScore !== null) {
+                    calculatedScore += attendanceScore * (category.percentage / 100)
+                }
+                continue
+                }
 
-						calculatedScore += categoryAvg * (category.percentage / 100)
-					}
+                const categoryActivities = activities.filter(
+                a => a.categoryId === category.id,
+                )
 
-					// Actualizar calificacion bimestral
-					await this.prisma.finalGrade.upsert({
-						where: {
-							studentId_subjectTermGroupId_periodId: {
-								studentId,
-								subjectTermGroupId,
-								periodId
-							}
-						},
-						update: {
-							calculatedScore: Math.round(calculatedScore * 10) / 10
-						},
-						create: {
-							studentId,
-							subjectTermGroupId,
-							periodId,
-							calculatedScore: Math.round(calculatedScore * 10) / 10
-						}
-					})
-				})
-			)
+                if (categoryActivities.length === 0) continue
+
+                const categoryScores = categoryActivities.map(a => {
+                const grade = a.grades[0]
+                if (!grade || grade.score === null) return null
+                return (grade.score / a.maxScore) * 10
+                })
+
+                const validScores = categoryScores.filter(s => s !== null) as number[]
+
+                if (validScores.length === 0) continue
+
+                const categoryAvg =
+                validScores.reduce((sum, s) => sum + s, 0) / validScores.length
+
+                calculatedScore += categoryAvg * (category.percentage / 100)
+            }
+
+            await this.prisma.finalGrade.upsert({
+                where: {
+                studentId_subjectTermGroupId_periodId: {
+                    studentId,
+                    subjectTermGroupId,
+                    periodId,
+                },
+                },
+                update: {
+                calculatedScore: Math.round(calculatedScore * 10) / 10,
+                },
+                create: {
+                studentId,
+                subjectTermGroupId,
+                periodId,
+                calculatedScore: Math.round(calculatedScore * 10) / 10,
+                },
+            })
+            }),
+        )
     }
 
     // --------> Calificaciones Bimestrales
@@ -348,34 +379,173 @@ export class ClassroomService {
 
         const attendanceDate = new Date(date)
 
-        // Upsert de cada registro de asistencia
         await Promise.all(
             records.map(record =>
-                this.prisma.attendance.upsert({
-                    where: {
-                    studentId_subjectTermGroupId_date: {
-                        studentId: record.studentId,
-                        subjectTermGroupId,
-                        date: attendanceDate,
-                    },
-                    },
-                    update: {
-                    status: record.status as any,
-                    version: { increment: 1 },
-                    updatedAt: new Date(),
-                    },
-                    create: {
+            this.prisma.attendance.upsert({
+                where: {
+                studentId_subjectTermGroupId_date: {
                     studentId: record.studentId,
                     subjectTermGroupId,
                     date: attendanceDate,
-                    status: record.status as any,
-                    },
-                }),
+                },
+                },
+                update: {
+                status: record.status as any,
+                version: { increment: 1 },
+                updatedAt: new Date(),
+                },
+                create: {
+                studentId: record.studentId,
+                subjectTermGroupId,
+                date: attendanceDate,
+                status: record.status as any,
+                },
+            }),
             ),
+        )
+
+        // Recalcula calificaciones si la materia tiene categoría de asistencia
+        await this.recalculatePeriodGradesFromAttendance(
+            subjectTermGroupId,
+            attendanceDate,
         )
 
         return { success: true }
     }
+
+		private async recalculatePeriodGradesFromAttendance(
+			subjectTermGroupId: string,
+			date: Date,
+		) {
+			const stg = await this.prisma.subjectTermGroup.findUnique({
+				where: { id: subjectTermGroupId },
+				include: {
+					subject: { include: { gradeCategories: true } },
+					group: {
+						include: {
+							studentGroupTerms: {
+								where: { active: true },
+								select: { studentId: true },
+							},
+						},
+					},
+					academicTerm: {
+						include: {
+							periods: { orderBy: { number: 'asc' } },
+						},
+					},
+				},
+			})
+
+			if (!stg) return
+
+			// Verifica si la materia tiene categoría de asistencia
+			const hasAttendanceCategory = stg.subject.gradeCategories.some(
+				c => c.name.toLowerCase().trim() === 'asistencia',
+			)
+
+			if (!hasAttendanceCategory) return
+
+			// Encuentra el periodo al que pertenece la fecha
+			const period = stg.academicTerm.periods.find(
+				p => date >= p.startDate && date <= p.endDate,
+			)
+
+			if (!period) return
+
+			const studentIds = stg.group.studentGroupTerms.map(s => s.studentId)
+			const categories = stg.subject.gradeCategories
+
+			await Promise.all(
+				studentIds.map(async studentId => {
+					// Asistencias del alumno en este bimestre
+					const attendances = await this.prisma.attendance.findMany({
+						where: {
+							studentId,
+							subjectTermGroupId,
+							date: {
+								gte: period.startDate,
+								lte: period.endDate,
+							},
+						},
+					})
+
+					const totalClasses = attendances.length
+					const absents = attendances.filter(a => a.status === 'ABSENT').length
+					const lates = attendances.filter(a => a.status === 'LATE').length
+					const equivalentAbsences = absents + Math.floor(lates / 3)
+					const effectivePresences = totalClasses - equivalentAbsences
+					const attendanceScore = totalClasses > 0
+						? Math.min((effectivePresences / totalClasses) * 10, 10)
+						: null
+
+					if (attendanceScore === null) return
+
+					// Actividades del bimestre para calcular el resto de categorías
+					const activities = await this.prisma.activity.findMany({
+						where: {
+							subjectId: stg.subjectId,
+							periodId: period.id,
+							deletedAt: null,
+						},
+						include: {
+							grades: { where: { studentId, subjectTermGroupId } },
+							category: true,
+						},
+					})
+
+					let calculatedScore = 0
+
+					for (const category of categories) {
+						const isAttendanceCategory =
+							category.name.toLowerCase().trim() === 'asistencia'
+
+						if (isAttendanceCategory) {
+							calculatedScore += attendanceScore * (category.percentage / 100)
+							continue
+						}
+
+						const categoryActivities = activities.filter(
+							a => a.categoryId === category.id,
+						)
+
+						if (categoryActivities.length === 0) continue
+
+						const categoryScores = categoryActivities.map(a => {
+							const grade = a.grades[0]
+							if (!grade || grade.score === null) return null
+							return (grade.score / a.maxScore) * 10
+						})
+
+						const validScores = categoryScores.filter(s => s !== null) as number[]
+						if (validScores.length === 0) continue
+
+						const categoryAvg =
+							validScores.reduce((sum, s) => sum + s, 0) / validScores.length
+						calculatedScore += categoryAvg * (category.percentage / 100)
+					}
+
+					await this.prisma.finalGrade.upsert({
+						where: {
+							studentId_subjectTermGroupId_periodId: {
+								studentId,
+								subjectTermGroupId,
+								periodId: period.id,
+							},
+						},
+						update: {
+							calculatedScore: Math.round(calculatedScore * 10) / 10,
+						},
+						create: {
+							studentId,
+							subjectTermGroupId,
+							periodId: period.id,
+							calculatedScore: Math.round(calculatedScore * 10) / 10,
+						},
+					})
+				}),
+			)
+		}
 
     async getAttendanceByDate(
         teacherId: string,
