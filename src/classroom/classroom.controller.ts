@@ -164,4 +164,12 @@ export class ClassroomController {
             body.closed,
         )
     }
+
+    @Get(':id/final-grades')
+getFinalGrades(
+  @CurrentUser() user: { id: string },
+  @Param('id') subjectTermGroupId: string,
+) {
+  return this.classroomService.getFinalGrades(user.id, subjectTermGroupId)
+}
 }
