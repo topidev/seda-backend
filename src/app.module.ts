@@ -13,6 +13,8 @@ import { ClassroomModule } from './classroom/classroom.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ReportsModule } from './reports/reports.module';
+import { HealthModule } from './health/health.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -26,6 +28,7 @@ import { ReportsModule } from './reports/reports.module';
       isGlobal: true,   // disponible en toda la app sin importarlo
       validate,         // valida las variables al iniciar
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     SchoolsModule,
@@ -34,6 +37,7 @@ import { ReportsModule } from './reports/reports.module';
     StudentsModule,
     ClassroomModule,
     ReportsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [
