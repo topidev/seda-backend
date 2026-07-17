@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateStudentDto } from './dto/create-student.dto'
 import { UpdateStudentDto } from './dto/update-student.dto'
+import { title } from 'process'
 
 @Injectable()
 export class StudentsService {
@@ -261,6 +262,8 @@ export class StudentsService {
       excused: attendances.filter((a) => a.status === 'EXCUSED').length,
     }
 
+
+
     return {
       subjectName: stg.subject.name,
       periodDates: {
@@ -278,6 +281,118 @@ export class StudentsService {
         date: a.date,
         status: a.status
       })),
+    }
+  }
+
+  async getFullSubjectSummary(
+    teacherId: string,
+    studentId: string,
+    subjectTermGroupId: string
+  ) {
+    const student = await this.prisma.student.findFirst({
+      where: {
+        id: studentId,
+        teacherId,
+        deletedAt: null
+      }
+    })
+
+    if(!student) throw new NotFoundException('Alumno no encontrado')
+    
+    const stg = await this.prisma.subjectTermGroup.findFirst({
+      where: {
+        id: subjectTermGroupId,
+        subject: { teacherId }
+      },
+      include: {
+        subject: {
+          include: { gradeCategories: true }
+        },
+        academicTerm: {
+          include: {
+            periods: {
+              orderBy: {
+                number: 'asc'
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (!stg) throw new NotFoundException('Materia no encontrada')
+
+    const periods = await Promise.all(
+      stg.academicTerm.periods.map(async period => {
+        const finalGrade = await this.prisma.finalGrade.findUnique({
+          where: {
+            studentId_subjectTermGroupId_periodId: {
+              studentId,
+              subjectTermGroupId,
+              periodId: period.id
+            }
+          }
+        })
+
+        const activities = await this.prisma.activity.findMany({
+          where: {
+            subjectId: stg.subjectId,
+            periodId: period.id,
+            deletedAt: null
+          },
+          include: {
+            category: true,
+            grades: {
+              where: {
+                studentId,
+                subjectTermGroupId
+              }
+            }
+          },
+          orderBy: { createdAt: 'asc' }
+        })
+
+        const attendance = await this.prisma.attendance.findMany({
+          where: {
+            studentId,
+            subjectTermGroupId,
+            date: {
+              gte: period.startDate,
+              let: period.endDate
+            }
+          },
+          orderBy: { date: 'asc' }
+        })
+
+        return {
+          number: period.number,
+          startDate: period.startDate,
+          endDate: period.endDate,
+          finalGrade: finalGrade ?
+            {
+              calculatedScore: finalGrade.calculatedScore,
+              finalScore: finalGrade.finalScore
+            } :
+            null,
+          activities: activities.map(a => ({
+            title: a.title,
+            categoryName: a.category.name,
+            maxScore: a.maxScore,
+            score: a.grades[0]?.score ?? null,
+            didNotSubmit: a.grades[0]?.didNotSubmit ?? false
+          })),
+          attendance: attendance.map(a => ({
+            date: a.date,
+            status: a.status
+          }))
+        }
+      })
+    )
+    return {
+      studentName: `${student.name} ${student.firstLastName} ${student.secondLastName ?? ''}`.trim(),
+      subjectName: stg.subject.name,
+      academicTermName: stg.academicTerm.name,
+      periods
     }
   }
 

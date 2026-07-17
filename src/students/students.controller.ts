@@ -92,5 +92,17 @@ export class StudentsController {
     )
   }
 
+  @Get(':id/subjects/:subjectTermGroupId/full-summary')
+  getFullSubjectSummary(
+    @CurrentUser() user: { id: string },
+    @Param('id') studentId: string,
+    @Param('subjectTermGroupId') subjectTermGroupId: string,
+  ) {
+    return this.studentsService.getFullSubjectSummary(
+      user.id,
+      studentId,
+      subjectTermGroupId
+    )
+  }
 
 }
