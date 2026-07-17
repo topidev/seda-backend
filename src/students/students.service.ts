@@ -358,7 +358,7 @@ export class StudentsService {
             subjectTermGroupId,
             date: {
               gte: period.startDate,
-              let: period.endDate
+              lte: period.endDate
             }
           },
           orderBy: { date: 'asc' }
