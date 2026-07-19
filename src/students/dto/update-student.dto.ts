@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString, MinLength } from 'class-validator'
+import { IsDateString, IsEmail, IsOptional, IsString, Matches, MinLength } from 'class-validator'
 
 export class UpdateStudentDto {
   @IsString()
@@ -15,6 +15,13 @@ export class UpdateStudentDto {
   @IsOptional()
   secondLastName?: string
 
+  @IsString()
+  @IsOptional()
+  @Matches(/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/, {
+    message: 'CURP inválida',
+  })
+  curp?: string
+
   @IsDateString()
   @IsOptional()
   birthDate?: string
@@ -26,4 +33,8 @@ export class UpdateStudentDto {
   @IsString()
   @IsOptional()
   tutorPhone?: string
+
+  @IsEmail({}, { message: 'Email del tutor inválido' })
+  @IsOptional()
+  tutorEmail?: string
 }

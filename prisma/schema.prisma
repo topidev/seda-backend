@@ -218,17 +218,20 @@ model Student {
   name            String
   firstLastName   String
   secondLastName  String?
-  birthDate       DateTime?
+  curp            String?
+  birthDate       DateTime? @db.Date
   tutorName       String?
   tutorPhone      String?
+  tutorEmail      String?
   deletedAt       DateTime?
+  createdAt       DateTime? @default(now())
 
   teacher       Teacher            @relation(fields: [teacherId], references: [id])
   groupTerms    StudentGroupTerm[]
   grades        Grade[]
   finalGrades   FinalGrade[]
   attendances   Attendance[]
-  reports Report[]
+  reports       Report[]
 
   @@map("students")
 }

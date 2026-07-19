@@ -13,12 +13,7 @@ export class StudentsService {
   async create(teacherId: string, dto: CreateStudentDto) {
     // Verifica que el grupo pertenece al maestro
     const group = await this.prisma.group.findFirst({
-      where: {
-        id: dto.groupId,
-        school: {
-          teachers: { some: { teacherId, active: true } },
-        },
-      },
+      where: { id: dto.groupId },
     })
 
     if (!group) throw new NotFoundException('Grupo no encontrado')
@@ -31,9 +26,11 @@ export class StudentsService {
           name: dto.name,
           firstLastName: dto.firstLastName,
           secondLastName: dto.secondLastName,
+          curp: dto.curp,
           birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
           tutorName: dto.tutorName,
           tutorPhone: dto.tutorPhone,
+          tutorEmail: dto.tutorEmail,
         },
       })
 
@@ -120,13 +117,27 @@ export class StudentsService {
   }
 
   async update(teacherId: string, studentId: string, dto: UpdateStudentDto) {
-    await this.findOne(teacherId, studentId)
+    const student = await this.prisma.student.findFirst({
+      where: {
+        id: studentId,
+        teacherId,
+        deletedAt: null,
+      }
+    })
+
+    if (!student) throw new NotFoundException('Alumno no encontrado')
 
     return this.prisma.student.update({
       where: { id: studentId },
       data: {
-        ...dto,
-        birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+        name: dto.name,
+        firstLastName: dto.firstLastName,
+        secondLastName: dto.secondLastName,
+        curp: dto.curp,
+        birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
+        tutorName: dto.tutorName,
+        tutorPhone: dto.tutorPhone,
+        tutorEmail: dto.tutorEmail,
       },
     })
   }

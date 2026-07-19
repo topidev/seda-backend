@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "students" ADD COLUMN     "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "curp" TEXT,
+ADD COLUMN     "tutorEmail" TEXT,
+ALTER COLUMN "birthDate" SET DATA TYPE DATE;
