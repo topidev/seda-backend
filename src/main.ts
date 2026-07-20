@@ -5,11 +5,10 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // app.use((req, res, next) => {
-  //   console.log('Incoming headers:', req.headers);
-  //   console.log('Cookie header:', req.headers.cookie);
-  //   next();
-  // });
+  
+  const expressApp = app.getHttpAdapter().getInstance()
+  expressApp.set('trust proxy', 1)
+
   app.use(cookieParser())
   app.enableCors({
     origin: [
