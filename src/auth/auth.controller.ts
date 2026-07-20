@@ -6,6 +6,7 @@ import { GoogleAuthGuard } from './guards/google-auth.guard'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard'
 import { CurrentUser } from 'src/common/decorators/current-user.decorator'
+import { Throttle } from '@nestjs/throttler'
 
 @Controller('auth')
 export class AuthController {
@@ -94,6 +95,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ short: { limit:20, ttl: 1000 } })
   @UseGuards(JwtRefreshGuard)
   async refresh(@Req() req: any, @Res() res: Response) {
     const user = req.user as {

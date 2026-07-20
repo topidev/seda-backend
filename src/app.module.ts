@@ -20,6 +20,12 @@ import { ScheduleModule } from '@nestjs/schedule';
   imports: [
     ThrottlerModule.forRoot([
       {
+        name: 'short',
+        ttl: 1000,    // 1 segundo
+        limit: 10,    // máximo 10 requests por segundo por IP
+      },
+      {
+        name: 'medium',
         ttl: 60000, // Un minuto de gap
         limit: 100 // 100 intentos por el gap de un min
       }
