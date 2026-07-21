@@ -28,7 +28,6 @@ model Teacher {
   schools          SchoolTeacher[]
   subjects         Subject[]
   students         Student[]
-  sharedLinks      SharedLink[]
   reports Report[]
 
   @@map("teachers")
@@ -352,30 +351,6 @@ enum AttendanceStatus {
   ABSENT
   LATE
   EXCUSED
-}
-
-// ─────────────────────────────────────────
-// SHARED LINKS
-// ─────────────────────────────────────────
-
-model SharedLink {
-  id          String       @id @default(cuid())
-  teacherId   String
-  token       String       @unique @default(cuid())
-  type        SharedLinkType
-  referenceId String
-  expiresAt   DateTime?
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-
-  teacher Teacher @relation(fields: [teacherId], references: [id])
-
-  @@map("shared_links")
-}
-
-enum SharedLinkType {
-  GRADES
-  ATTENDANCE
 }
 
 

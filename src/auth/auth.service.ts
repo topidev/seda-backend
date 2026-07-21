@@ -70,8 +70,6 @@ export class AuthService {
     // si alguien roba la DB no obtiene el token real
     const hashedRefreshToken = await argon2.hash(refreshToken)
 
-    console.log('Token generado: ', refreshToken.slice(-10))
-    console.log('Hash guardado: ', hashedRefreshToken.slice(-10))
 
     await this.prisma.refreshToken.create({
       data: {
@@ -99,7 +97,6 @@ export class AuthService {
     // })
 
     // const veryfyNow = await argon2.verify(teacher!.refreshToken!, refreshToken)
-    // console.log('Verificación inmediata despues de guardar.', veryfyNow)
 
     return { accessToken, refreshToken }
   }
@@ -116,7 +113,6 @@ export class AuthService {
   }
 
   async refreshTokens(teacherId: string, refreshToken: string) {
-    console.log('RefreshToken recibido (20 chars): ', refreshToken.slice(-25))
     
     // Busca todos los tokens activos del maestro
     const tokens = await this.prisma.refreshToken.findMany({

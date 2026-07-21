@@ -50,9 +50,6 @@ export class SchoolsService {
 
     async findOne(teacherId: string, schoolId: string) {
 
-        console.log('teacherId:', teacherId)
-        console.log('schoolId:', schoolId)
-
         const school = await this.prisma.school.findFirst({
             where: {
                 id: schoolId,
@@ -70,8 +67,6 @@ export class SchoolsService {
                 },
             },
         })
-
-        console.log('Escuela Encontrada', school)
 
         if (!school) throw new NotFoundException('Escuela No Encontrada.')
         
