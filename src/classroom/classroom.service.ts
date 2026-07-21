@@ -655,87 +655,85 @@ export class ClassroomService {
 
 
     async getFinalGrades(teacherId: string, subjectTermGroupId: string) {
-  await this.findOneClass(teacherId, subjectTermGroupId)
+			await this.findOneClass(teacherId, subjectTermGroupId)
 
-  const stg = await this.prisma.subjectTermGroup.findUnique({
-    where: { id: subjectTermGroupId },
-    include: {
-      group: {
-        include: {
-          studentGroupTerms: {
-            where: { active: true },
-            include: { student: true },
-          },
-        },
-      },
-      academicTerm: {
-        include: {
-          periods: { orderBy: { number: 'asc' } },
-        },
-      },
-    },
-  })
+			const stg = await this.prisma.subjectTermGroup.findUnique({
+				where: { id: subjectTermGroupId },
+				include: {
+					group: {
+						include: {
+							studentGroupTerms: {
+								where: { active: true },
+								include: { student: true },
+								orderBy: [
+									{ student: { firstLastName: 'asc' } },
+									{ student: { name: 'asc' } },
+								],
+							},
+						},
+					},
+					academicTerm: {
+						include: {
+							periods: { orderBy: { number: 'asc' } },
+						},	
+					},
+					finalGrades: {
+						include: { student: true },
+					},
+				},
+			})
 
-  if (!stg) throw new NotFoundException('Clase no encontrada')
+			if (!stg) throw new NotFoundException('Clase no encontrada')
 
-  const students = stg.group.studentGroupTerms.map(sgt => sgt.student)
-  const periods = stg.academicTerm.periods
+			const students = stg.group.studentGroupTerms.map(sgt => sgt.student)
+			const periods = stg.academicTerm.periods
 
-  // Para cada alumno obtiene sus calificaciones por bimestre
-  const result = await Promise.all(
-    students.map(async student => {
-      const grades = await this.prisma.finalGrade.findMany({
-        where: {
-          studentId: student.id,
-          subjectTermGroupId,
-        },
-      })
+			// Para cada alumno obtiene sus calificaciones por bimestre
+			const result = students.map(student => {
+				const gradesByPeriod = periods.map(period => {
+					const grade = stg.finalGrades.find(
+						g => g.studentId === student.id && g.periodId === period.id
+					)
+					return {
+						periodId: period.id,
+						periodNumber: period.number,
+						calculatedScore: grade?.calculatedScore ?? null,
+						finalScore: grade?.finalScore ?? null,
+						closed: grade?.closed ?? false,
+					}
+				})
 
-      const gradesByPeriod = periods.map(period => {
-        const grade = grades.find(g => g.periodId === period.id)
-        return {
-          periodId: period.id,
-          periodNumber: period.number,
-          calculatedScore: grade?.calculatedScore ?? null,
-          finalScore: grade?.finalScore ?? null,
-          closed: grade?.closed ?? false,
-        }
-      })
+					// Promedio final solo de bimestres cerrados
+				const closedGrades = gradesByPeriod.filter(g => g.closed)
+				const average = closedGrades.length > 0
+					? Math.round(
+							(closedGrades.reduce((sum, g) => {
+							const score = g.finalScore ?? g.calculatedScore ?? 0
+							return sum + score
+							}, 0) / closedGrades.length) * 10,
+					) / 10
+					: null
 
-      // Promedio final solo de bimestres cerrados
-      const closedGrades = gradesByPeriod.filter(g => g.closed)
-      const average = closedGrades.length > 0
-        ? Math.round(
-            (closedGrades.reduce((sum, g) => {
-              const score = g.finalScore ?? g.calculatedScore ?? 0
-              return sum + score
-            }, 0) / closedGrades.length) * 10,
-          ) / 10
-        : null
+				return {
+					student: {
+						id: student.id,
+						name: student.name,
+						firstLastName: student.firstLastName,
+						secondLastName: student.secondLastName,
+					},
+					grades: gradesByPeriod,
+					average,
+				}
+			})
 
-      return {
-        student: {
-          id: student.id,
-          name: student.name,
-          firstLastName: student.firstLastName,
-          secondLastName: student.secondLastName,
-        },
-        grades: gradesByPeriod,
-        average,
-      }
-    }),
-  )
-
-  return {
-    periods,
-    students: result.sort((a, b) =>
-      a.student.firstLastName.localeCompare(b.student.firstLastName),
-    ),
-    allClosed: periods.every(period =>
-      result.every(r =>
-        r.grades.find(g => g.periodId === period.id)?.closed ?? false,
-      ),
-    ),
-  }
-}
+			return {
+				periods,
+				students: students,
+				allClosed: periods.every(period =>
+					result.every(r =>
+							r.grades.find(g => g.periodId === period.id)?.closed ?? false,
+					),
+				),
+			}
+    }
 }

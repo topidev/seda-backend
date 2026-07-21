@@ -82,6 +82,7 @@ export class StudentsService {
         },
       },
       orderBy: [{ firstLastName: 'asc' }, { name: 'asc' }],
+      take: 200,
     })
   }
 
