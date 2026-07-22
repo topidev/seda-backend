@@ -72,5 +72,20 @@ export class SchoolsController {
         return this.schoolsService.findTerms(user.id, schoolId)
     }
 
+    @Patch(':id/terms/:termId/toggle-close')
+    toggleTermClose(
+        @CurrentUser() user: { id: string },
+        @Param('id') schoolId: string,
+        @Param('termId') termId: string,
+        @Body() body: { active: boolean },
+    ) {
+        return this.schoolsService.toggleTermClose(
+            user.id,
+            schoolId,
+            termId,
+            body.active
+        )
+    }
+
     
 }

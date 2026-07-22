@@ -146,4 +146,33 @@ export class SchoolsService {
         })
     }
 
+    async toggleTermClose(
+        teacherId: string,
+        schoolId: string,
+        termId: string,
+        active: boolean
+    ) {
+        const term = await this.prisma.academicTerm.findFirst({
+            where: {
+                id: termId,
+                schoolId,
+                school: {
+                    teachers: {
+                        some: {
+                            teacherId,
+                            active: true
+                        }
+                    }
+                }
+            }
+        })
+
+        if(!term) throw new NotFoundException('Ciclo escolar no encontrado')
+
+        return this.prisma.academicTerm.update({
+            where: { id: termId}, 
+            data: { active }
+        })
+    }
+
 }
