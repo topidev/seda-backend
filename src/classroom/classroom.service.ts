@@ -728,7 +728,7 @@ export class ClassroomService {
 
 			return {
 				periods,
-				students: students,
+				students: result,
 				allClosed: periods.every(period =>
 					result.every(r =>
 							r.grades.find(g => g.periodId === period.id)?.closed ?? false,
