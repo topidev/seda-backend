@@ -64,6 +64,7 @@ export class StudentsController {
   }
 
   @Post(':id/assign')
+  @UseGuards(JwtAuthGuard, AcademicTermGuard)
   assignToGroup(
     @CurrentUser() user: { id: string },
     @Param('id') studentId: string,
