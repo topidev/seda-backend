@@ -185,6 +185,7 @@ model SubjectTermGroup {
   attendances Attendance[]
   reports Report[]
   grades  Grade[]
+  schedules Schedule[]
 
   @@unique([subjectId, groupId, academicTermId])
   @@map("subject_term_groups")
@@ -374,4 +375,18 @@ model Report {
   subjectTermGroup SubjectTermGroup? @relation(fields: [subjectTermGroupId], references: [id])
 
   @@map("reports")
+}
+
+
+model Schedule {
+  id                 String   @id @default(cuid())
+  subjectTermGroupId String
+  dayOfWeek          Int      // 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado, 7=Domingo
+  startTime          String   // "09:00"
+  endTime            String?  // "10:00" (opcional)
+  createdAt          DateTime @default(now())
+
+  subjectTermGroup SubjectTermGroup @relation(fields: [subjectTermGroupId], references: [id])
+
+  @@map("schedules")
 }

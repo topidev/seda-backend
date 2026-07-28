@@ -45,6 +45,7 @@ import { CustomThrottlerGuard } from './common/guards/throttler.guard';
     ClassroomModule,
     ReportsModule,
     HealthModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
   providers: [
