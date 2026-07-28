@@ -88,8 +88,28 @@ export class ScheduleService {
           include: {
             subject: true,
             group: true,
-            activities: {
+          },
+        },
+      },
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+    })
+
+
+
+    // Agrupa por día de la semana
+    const days = [1, 2, 3, 4, 5, 6, 7]
+    const result = await Promise.all(
+      days.map(async day => {
+        const date = new Date(monday)
+        date.setDate(monday.getDate() + day - 1)
+
+        const daySchedules = schedules.filter(s => s.dayOfWeek === day)
+
+        const schedulesWithActivities = await Promise.all(
+          daySchedules.map(async s => {
+            const activities = await this.prisma.activity.findMany({
               where: {
+                subjectId: s.subjectTermGroup.subject.id,
                 deletedAt: null,
                 dueDate: {
                   gte: monday,
@@ -97,35 +117,27 @@ export class ScheduleService {
                 },
               },
               include: { category: true },
-            },
-          },
-        },
-      },
-      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-    })
+            })
 
-    // Agrupa por día de la semana
-    const days = [1, 2, 3, 4, 5, 6, 7]
-    const result = days.map(day => {
-      const date = new Date(monday)
-      date.setDate(monday.getDate() + day - 1)
+            return {
+              id: s.id,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              subjectTermGroupId: s.subjectTermGroupId,
+              subjectName: s.subjectTermGroup.subject.name,
+              groupName: `${s.subjectTermGroup.group.grade}°${s.subjectTermGroup.group.letter}`,
+              activities,
+            }
+          })
+        )
 
-      const daySchedules = schedules.filter(s => s.dayOfWeek === day)
-
-      return {
-        dayOfWeek: day,
-        date: date.toISOString(),
-        schedules: daySchedules.map(s => ({
-          id: s.id,
-          startTime: s.startTime,
-          endTime: s.endTime,
-          subjectTermGroupId: s.subjectTermGroupId,
-          subjectName: s.subjectTermGroup.subject.name,
-          groupName: `${s.subjectTermGroup.group.grade}°${s.subjectTermGroup.group.letter}`,
-          activities: s.subjectTermGroup.activities,
-        })),
-      }
-    })
+        return {
+          dayOfWeek: day,
+          date: date.toISOString(),
+          schedules: schedulesWithActivities,
+        }
+      })
+    )
 
     return {
       weekStart: monday.toISOString(),
@@ -161,30 +173,36 @@ export class ScheduleService {
           include: {
             subject: true,
             group: true,
-            activities: {
-              where: {
-                deletedAt: null,
-                dueDate: {
-                  gte: monday,
-                  lte: sunday,
-                },
-              },
-              include: { category: true },
-            },
           },
         },
       },
       orderBy: { startTime: 'asc' },
     })
 
-    return schedules.map(s => ({
-      id: s.id,
-      startTime: s.startTime,
-      endTime: s.endTime,
-      subjectTermGroupId: s.subjectTermGroupId,
-      subjectName: s.subjectTermGroup.subject.name,
-      groupName: `${s.subjectTermGroup.group.grade}°${s.subjectTermGroup.group.letter}`,
-      activities: s.subjectTermGroup.activities,
-    }))
+    return Promise.all(
+      schedules.map(async s => {
+        const activities = await this.prisma.activity.findMany({
+          where: {
+            subjectId: s.subjectTermGroup.subject.id,
+            deletedAt: null,
+            dueDate: {
+              gte: monday,
+              lte: sunday,
+            },
+          },
+          include: { category: true },
+        })
+
+        return {
+          id: s.id,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          subjectTermGroupId: s.subjectTermGroupId,
+          subjectName: s.subjectTermGroup.subject.name,
+          groupName: `${s.subjectTermGroup.group.grade}°${s.subjectTermGroup.group.letter}`,
+          activities,
+        }
+      })
+    )
   }
 }
