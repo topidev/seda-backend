@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { CreateScheduleDto } from './dto/create-schedule.dto'
 
 @Injectable()
-export class ScheduleService {
+export class ClassScheduleService {
   constructor(private prisma: PrismaService) {}
 
   async create(

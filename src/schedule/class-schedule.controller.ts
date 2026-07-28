@@ -8,15 +8,15 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common'
-import { ScheduleService } from './schedule.service'
+import { ClassScheduleService } from './class-schedule.service'
 import { CreateScheduleDto } from './dto/create-schedule.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CurrentUser } from '../common/decorators/current-user.decorator'
 
 @Controller('schedule')
 @UseGuards(JwtAuthGuard)
-export class ScheduleController {
-  constructor(private readonly scheduleService: ScheduleService) {}
+export class ClassScheduleController {
+  constructor(private readonly scheduleService: ClassScheduleService) {}
 
   @Post('classes/:subjectTermGroupId')
   create(

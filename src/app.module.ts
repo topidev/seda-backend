@@ -10,13 +10,14 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { GroupsModule } from './groups/groups.module';
 import { StudentsModule } from './students/students.module';
 import { ClassroomModule } from './classroom/classroom.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ReportsModule } from './reports/reports.module';
 import { HealthModule } from './health/health.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { AcademicTermGuard } from './common/guards/academic-term.guard';
+import { ClassScheduleModule } from './schedule/class-schedule.module';
 
 @Module({
   imports: [
@@ -46,7 +47,7 @@ import { AcademicTermGuard } from './common/guards/academic-term.guard';
     ClassroomModule,
     ReportsModule,
     HealthModule,
-    ScheduleModule,
+    ClassScheduleModule ,
   ],
   controllers: [AppController],
   providers: [
