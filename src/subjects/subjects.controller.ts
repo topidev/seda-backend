@@ -5,6 +5,7 @@ import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { CreateGradeCategoryDto } from './dto/create-grade-category.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { AcademicTermGuard } from 'src/common/guards/academic-term.guard';
 
 @Controller('subjects')
 @UseGuards(JwtAuthGuard)
@@ -62,6 +63,7 @@ export class SubjectsController {
     // ------------> Grupos
 
     @Post(':id/assing-groups')
+    @UseGuards(JwtAuthGuard, AcademicTermGuard)
     assignGroups(
         @CurrentUser() user: { id: string },
         @Param(':id') subjectId: string,

@@ -38,12 +38,17 @@ export class SchoolsService {
                 },
             },
             include: {
-                academicTerms: {
-                    orderBy: { createdAt: 'desc' }
-                },
-                _count: {
-                    select: { groups: true },
-                },
+							academicTerms: {
+								include: {
+									periods: { orderBy: {
+										number: 'asc'
+									}}
+								},
+								orderBy: { createdAt: 'desc' }
+							},
+							_count: {
+								select: { groups: true },
+							},
             },
         })
     }

@@ -16,6 +16,7 @@ import { ReportsModule } from './reports/reports.module';
 import { HealthModule } from './health/health.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
+import { AcademicTermGuard } from './common/guards/academic-term.guard';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { CustomThrottlerGuard } from './common/guards/throttler.guard';
   controllers: [AppController],
   providers: [
     AppService,
+    AcademicTermGuard,
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard

@@ -29,6 +29,7 @@ export class GroupsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, AcademicTermGuard)
   findAll(
     @CurrentUser() user: { id: string },
     @Query('schoolId') schoolId: string,
