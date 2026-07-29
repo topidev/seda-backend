@@ -44,4 +44,13 @@ export class EventsController {
   ) {
     return this.eventsService.remove(user.id, eventId)
   }
+
+  @Get()
+  findAll(
+    @CurrentUser() user: { id: string },
+    @Query('schoolId') schoolId?: string,
+  ) {
+    return this.eventsService.findAll(user.id, schoolId)
+  }
+
 }
