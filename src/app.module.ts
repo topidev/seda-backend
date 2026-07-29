@@ -18,6 +18,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { AcademicTermGuard } from './common/guards/academic-term.guard';
 import { ClassScheduleModule } from './schedule/class-schedule.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -47,7 +48,8 @@ import { ClassScheduleModule } from './schedule/class-schedule.module';
     ClassroomModule,
     ReportsModule,
     HealthModule,
-    ClassScheduleModule ,
+    ClassScheduleModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [
